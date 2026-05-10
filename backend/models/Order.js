@@ -98,6 +98,15 @@ const orderSchema = new mongoose.Schema(
       enum: ['esewa', 'khalti', 'cod'],
       default: 'cod',
     },
+    paymentDetails: {
+      transactionId: String, // General purpose
+      // eSewa specific
+      esewaTransactionUuid: { type: String, unique: true, sparse: true },
+      esewaRefId: String,
+      // Khalti specific
+      khaltiPidx: { type: String, unique: true, sparse: true },
+      khaltiTransactionId: String,
+    },
     pricing: {
       subtotal:    { type: Number, required: true },
       tax:         { type: Number, default: 0 },
