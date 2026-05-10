@@ -57,8 +57,10 @@ const queryClient = new QueryClient();
 const NavigationHandler = () => {
   const location = useLocation();
   const hideNavbar =
-    location.pathname.startsWith("/admin") ||
-    location.pathname.startsWith("/chef");
+    location.pathname.startsWith("/admin/") ||
+    location.pathname === "/admin" ||
+    location.pathname.startsWith("/chef/") ||
+    location.pathname === "/chef";
 
   if (hideNavbar) return null;
   return <Navigation />;
