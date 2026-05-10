@@ -82,6 +82,7 @@ app.use("/api/subscriptions", require("./routes/subscription"));
 app.use("/api/payment", require("./routes/payment"));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/upload", require("./routes/upload"));
+app.use("/api/notifications", require("./routes/notifications"));
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

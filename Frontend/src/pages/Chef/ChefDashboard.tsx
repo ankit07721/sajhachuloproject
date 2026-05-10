@@ -2,6 +2,7 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import NotificationBell from "@/components/NotificationBell";
 import {
   ChefHat,
   Utensils,
@@ -298,7 +299,8 @@ const ChefDashboard = () => {
                 </p>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
+              <NotificationBell />
               <Button
                 variant="outline"
                 size="sm"

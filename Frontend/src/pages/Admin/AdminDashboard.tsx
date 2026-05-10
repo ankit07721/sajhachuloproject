@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import NotificationBell from "@/components/NotificationBell";
 import {
   DollarSign,
   ShoppingBag,
@@ -152,7 +153,8 @@ const AdminDashboard = () => {
     <div className="container mx-auto py-8 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
+          <NotificationBell />
           <Button
             variant="outline"
             onClick={logout}

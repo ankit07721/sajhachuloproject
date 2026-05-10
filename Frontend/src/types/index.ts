@@ -190,3 +190,15 @@ export interface ApiResponse<T> {
     totalItems: number;
   };
 }
+
+export interface Notification {
+  _id: string;
+  recipient: string;
+  sender?: string;
+  type: "order_placed" | "order_status_update" | "new_chef_application" | "general";
+  title: string;
+  message: string;
+  link?: string;
+  isRead: boolean;
+  createdAt: string;
+}

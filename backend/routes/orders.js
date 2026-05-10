@@ -6,6 +6,7 @@ const MenuItem = require("../models/MenuItem");
 const User = require("../models/User");
 const Coupon = require("../models/Coupon");
 const Cart = require("../models/Cart");
+const Notification = require("../models/Notification");
 const { authenticateToken, authorizeRole } = require("../middleware/auth");
 const {
   sendOrderConfirmationEmail,
@@ -208,6 +209,36 @@ router.post("/", authenticateToken, validateOrder, async (req, res) => {
       console.log(
         `[CHEF ORDERS] Updated totalOrders for chef ${primaryChef.chefName}`,
       );
+    }
+
+    // ── Create notifications ──────────────────────────────────────────────
+    try {
+      // Notify Chefs
+      if (allChefs && allChefs.length > 0) {
+        for (const chefData of allChefs) {
+          await Notification.create({
+            recipient: chefData.chef,
+            type: "order_placed",
+            title: "New Order Received!",
+            message: `You have a new order for: ${chefData.items.join(", ")}`,
+            link: `/chef/orders`,
+          });
+        }
+      }
+
+      // Notify Admins
+      const admins = await User.find({ role: "admin" });
+      for (const admin of admins) {
+        await Notification.create({
+          recipient: admin._id,
+          type: "order_placed",
+          title: "New Order Placed",
+          message: `Order ${savedOrder.orderNumber} has been placed.`,
+          link: `/admin/manage-orders`,
+        });
+      }
+    } catch (err) {
+      console.error("Notification creation failed:", err);
     }
 
     // Clear cart (Only if payment method is COD. For online payments, we clear after verification)
