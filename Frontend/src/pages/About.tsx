@@ -47,7 +47,7 @@ const About = () => {
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
             Our Story
           </h1>
-          {/* ✅ FIX: Brand name updated */}
+       
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             Sajha Chulo was born from a simple belief: the best meals come from the
             heart. We're connecting passionate home cooks with food lovers in
