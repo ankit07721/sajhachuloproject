@@ -47,12 +47,26 @@ reviewSchema.statics.calculateAverageRating = async function(menuItemId) {
 
     try {
         if (stats.length > 0) {
-            await MenuItem.findByIdAndUpdate(menuItemId, {
+            const updatedItem = await MenuItem.findByIdAndUpdate(menuItemId, {
                 rating: {
                     average: stats[0].average,
                     count: stats[0].count
                 }
             });
+
+            // Update Chef's average rating
+            if (updatedItem && updatedItem.createdBy) {
+                const User = require('./User');
+                const chefItems = await MenuItem.find({ createdBy: updatedItem.createdBy });
+                const ratedItems = chefItems.filter(i => i.rating?.count > 0);
+                
+                if (ratedItems.length > 0) {
+                    const chefAvg = ratedItems.reduce((sum, i) => sum + i.rating.average, 0) / ratedItems.length;
+                    await User.findByIdAndUpdate(updatedItem.createdBy, {
+                        'chefProfile.rating': Math.round(chefAvg * 10) / 10
+                    });
+                }
+            }
         } else {
             await MenuItem.findByIdAndUpdate(menuItemId, {
                 rating: { average: 0, count: 0 }

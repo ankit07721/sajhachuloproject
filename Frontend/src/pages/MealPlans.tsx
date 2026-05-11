@@ -144,7 +144,7 @@ function SubscribeModal({ plan, onClose, onSuccess }: {
     queryKey: ["allChefs"],
     queryFn: async () => {
       const res = await api.get("/chefs");
-      return res.data.data;
+      return res.data.chefs;
     },
   });
 
@@ -329,20 +329,32 @@ function SubscribeModal({ plan, onClose, onSuccess }: {
               <h3 className="font-bold text-lg">Choose Your Chef</h3>
               <p className="text-sm text-muted-foreground">Select a home cook to prepare your meals for this plan.</p>
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                {chefs?.map((chef: any) => (
-                  <div key={chef._id} 
-                    onClick={() => setAssignedChef(chef._id)}
-                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${assignedChef === chef._id ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                      {chef.firstName.charAt(0)}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm">{chef.firstName} {chef.lastName}</p>
-                      <p className="text-xs text-muted-foreground">Home Cook • {chef.location?.city || "Local"}</p>
-                    </div>
-                    {assignedChef === chef._id && <CheckCircle className="h-5 w-5 text-primary" />}
+                {!chefs ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ))}
+                ) : chefs.length === 0 ? (
+                  <div className="text-center py-8 bg-muted/30 rounded-xl border-2 border-dashed">
+                    <ChefHat className="h-10 w-10 mx-auto text-muted-foreground mb-2 opacity-50" />
+                    <p className="text-sm text-muted-foreground font-semibold">No Chefs Online Right Now</p>
+                    <p className="text-xs text-muted-foreground px-4">Our home cooks are currently away. Please try again later.</p>
+                  </div>
+                ) : (
+                  chefs.map((chef: any) => (
+                    <div key={chef._id} 
+                      onClick={() => setAssignedChef(chef._id)}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${assignedChef === chef._id ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                        {chef.firstName?.charAt(0) || "C"}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-bold text-sm">{chef.firstName} {chef.lastName}</p>
+                        <p className="text-xs text-muted-foreground">Home Cook • {chef.location || "Local"}</p>
+                      </div>
+                      {assignedChef === chef._id && <CheckCircle className="h-5 w-5 text-primary" />}
+                    </div>
+                  ))
+                )}
               </div>
               <div className="flex gap-3 pt-2">
                 <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>← Back</Button>

@@ -31,6 +31,7 @@ router.get("/", async (req, res) => {
       role: "chef",
       isActive: true,
       "chefProfile.applicationStatus": "approved",
+      "chefProfile.isAvailable": true,
     }).sort({ "chefProfile.rating": -1 });
 
     res.json({ success: true, chefs: chefs.map(formatChef) });
@@ -39,14 +40,20 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/chefs/:chefId — public, chef + their menu items
-router.get("/:chefId", async (req, res) => {
+// GET /api/chefs/batch?ids=1,2,3 — get multiple chefs by IDs
+router.get("/batch", async (req, res) => {
   try {
-    const user = await User.findOne({ _id: req.params.chefId, role: "chef" });
-    if (!user) return res.status(404).json({ success: false, message: "Chef not found" });
+    const ids = req.query.ids ? req.query.ids.split(',').map(id => id.trim()) : [];
+    if (ids.length === 0) return res.status(400).json({ success: false, message: "No IDs provided" });
 
-    const menuItems = await MenuItem.find({ createdBy: req.params.chefId, isAvailable: true });
-    res.json({ success: true, chef: formatChef(user), menuItems });
+    const chefs = await User.find({
+      _id: { $in: ids },
+      role: "chef",
+      isActive: true,
+      "chefProfile.applicationStatus": "approved",
+    });
+
+    res.json({ success: true, data: chefs.map(formatChef) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

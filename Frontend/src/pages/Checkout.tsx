@@ -125,12 +125,21 @@ const Checkout = () => {
   const subtotal =
     cart?.items.reduce((sum, item) => sum + item.price * item.quantity, 0) || 0;
 
-  // Use DELIVERY coords (not current GPS) for delivery fee calculation
-  const coordsToUse =
-    deliveryCoords ||
-    (user?.location?.latitude
-      ? { lat: user.location.latitude, lng: user.location.longitude }
-      : null);
+  // Get unique chef IDs from cart items
+  const chefIds = Array.from(new Set(cart?.items.map(item => item.menuItem.createdBy).filter(Boolean)));
+
+  // Fetch chef details
+  const { data: chefs, isLoading: isChefsLoading } = useQuery({
+    queryKey: ["chefs", chefIds],
+    queryFn: async () => {
+      if (chefIds.length === 0) return [];
+      const { data } = await api.get("/chefs/batch", {
+        params: { ids: chefIds.join(",") }
+      });
+      return data.data;
+    },
+    enabled: chefIds.length > 0,
+  });
 
   const { data: deliveryInfo, isLoading: isDeliveryLoading } =
     useQuery<DeliveryInfo>({
@@ -488,6 +497,40 @@ const Checkout = () => {
                         </p>
                       </div>
                     ))}
+                  </div>
+                  <Separator />
+                  {/* Chef Assignment Section */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Assigned Chefs</h4>
+                    {isChefsLoading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm text-muted-foreground">Loading chefs...</span>
+                      </div>
+                    ) : chefs && chefs.length > 0 ? (
+                      <div className="space-y-2">
+                        {chefs.map((chef) => (
+                          <div key={chef._id} className="flex items-center gap-3 p-2 bg-muted rounded">
+                            <img
+                              src={chef.photo || "/placeholder-chef.jpg"}
+                              alt={chef.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{chef.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {chef.specialty} • ⭐ {chef.rating.toFixed(1)} • {chef.totalOrders} orders
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No chefs assigned yet.</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Chefs are automatically assigned based on the items in your order.
+                    </p>
                   </div>
                   <Separator />
                   <div className="space-y-2">

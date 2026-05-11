@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Loader2, CheckCircle, PauseCircle, XCircle, PlayCircle, ChefHat } from "lucide-react";
+import { Loader2, CheckCircle, PauseCircle, XCircle, PlayCircle, ChefHat, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,7 @@ interface Subscription {
     phone: string;
   };
 
-  
+
 
 
   plan: {
@@ -55,11 +55,11 @@ const fetchMySub = async (): Promise<Subscription | null> => {
 
 const statusConfig = {
   pending_approval: { color: "bg-blue-100 text-blue-700 border-blue-200", icon: <Clock className="h-4 w-4" />, label: "Waiting for Chef" },
-  approved:         { color: "bg-purple-100 text-purple-700 border-purple-200", icon: <CheckCircle className="h-4 w-4" />, label: "Approved" },
-  active:           { color: "bg-green-100 text-green-700 border-green-200",    icon: <CheckCircle className="h-4 w-4" />,  label: "Active" },
-  paused:           { color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: <PauseCircle className="h-4 w-4" />, label: "Paused" },
-  cancelled:        { color: "bg-red-100 text-red-700 border-red-200",          icon: <XCircle className="h-4 w-4" />,     label: "Cancelled" },
-  expired:          { color: "bg-gray-100 text-gray-600 border-gray-200",       icon: <XCircle className="h-4 w-4" />,     label: "Expired" },
+  approved: { color: "bg-purple-100 text-purple-700 border-purple-200", icon: <CheckCircle className="h-4 w-4" />, label: "Approved" },
+  active: { color: "bg-green-100 text-green-700 border-green-200", icon: <CheckCircle className="h-4 w-4" />, label: "Active" },
+  paused: { color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: <PauseCircle className="h-4 w-4" />, label: "Paused" },
+  cancelled: { color: "bg-red-100 text-red-700 border-red-200", icon: <XCircle className="h-4 w-4" />, label: "Cancelled" },
+  expired: { color: "bg-gray-100 text-gray-600 border-gray-200", icon: <XCircle className="h-4 w-4" />, label: "Expired" },
 };
 
 const MySubscription = () => {
@@ -91,8 +91,8 @@ const MySubscription = () => {
 
   const claimMutation = useMutation({
     mutationFn: () => api.post("/subscriptions/claim-meal"),
-    onSuccess: () => { 
-      toast.success("Meal claimed successfully! Your chef has been notified. ✅"); 
+    onSuccess: () => {
+      toast.success("Meal claimed successfully! Your chef has been notified. ✅");
       navigate("/orders"); // Redirect to orders to see the status
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to claim meal."),
@@ -184,11 +184,11 @@ const MySubscription = () => {
                 <div>
                   <h3 className="text-xl font-black text-purple-900">Great News! Your Chef is Ready.</h3>
                   <p className="text-sm text-purple-700 max-w-md mx-auto">
-                    Chef {sub.assignedChefName} has approved your subscription request. 
+                    Chef {sub.assignedChefName} has approved your subscription request.
                     Please complete the payment below to activate your 30-day meal plan.
                   </p>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                   <Button className="bg-[#602D7E] hover:bg-[#4d2465] text-white w-full sm:w-48 h-12 font-bold"
                     onClick={() => handlePayment("khalti")}>
@@ -232,7 +232,7 @@ const MySubscription = () => {
                     <p className="text-sm text-muted-foreground">Click below to claim your daily subscription meal.</p>
                   </div>
                 </div>
-                <Button 
+                <Button
                   className="gradient-primary w-full md:w-auto h-12 px-8 font-bold"
                   onClick={() => claimMutation.mutate()}
                   disabled={claimMutation.isPending}
@@ -295,7 +295,7 @@ const MySubscription = () => {
             <div className="grid grid-cols-2 gap-4">
               {[
                 { label: "Start Date", val: format(new Date(sub.startDate), "PPP") },
-                { label: "End Date",   val: format(new Date(sub.endDate), "PPP") },
+                { label: "End Date", val: format(new Date(sub.endDate), "PPP") },
               ].map(item => (
                 <div key={item.label} className="bg-muted/40 rounded-xl p-3">
                   <p className="text-xs text-muted-foreground">{item.label}</p>
@@ -308,27 +308,27 @@ const MySubscription = () => {
 
         {/* Two-column: Preferences + Delivery */}
         {sub.assignedChefName && (
-  <Card className="mb-6 border-orange-200 bg-orange-50">
-    <CardContent className="flex items-center gap-4 p-5">
-      <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-        <ChefHat className="h-6 w-6 text-orange-600" />
-      </div>
-      <div>
-        <p className="text-xs text-orange-600 font-semibold uppercase tracking-wide">Your Assigned Chef</p>
-        <p className="text-lg font-black text-orange-800">{sub.assignedChefName} 👩‍🍳</p>
-        {sub.assignedChef?.chefProfile?.specialty && (
-          <p className="text-sm text-orange-600">{sub.assignedChef.chefProfile.specialty}</p>
-        )}
-      </div>
-      {sub.assignedChef?.chefProfile?.rating > 0 && (
-              <div className="ml-auto text-center">
-                <p className="text-xl font-black text-orange-700">⭐ {sub.assignedChef.chefProfile.rating}</p>
-                <p className="text-xs text-orange-500">rating</p>
+          <Card className="mb-6 border-orange-200 bg-orange-50">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <ChefHat className="h-6 w-6 text-orange-600" />
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              <div>
+                <p className="text-xs text-orange-600 font-semibold uppercase tracking-wide">Your Assigned Chef</p>
+                <p className="text-lg font-black text-orange-800">{sub.assignedChefName} 👩‍🍳</p>
+                {sub.assignedChef?.chefProfile?.specialty && (
+                  <p className="text-sm text-orange-600">{sub.assignedChef.chefProfile.specialty}</p>
+                )}
+              </div>
+              {sub.assignedChef?.chefProfile?.rating > 0 && (
+                <div className="ml-auto text-center">
+                  <p className="text-xl font-black text-orange-700">⭐ {sub.assignedChef.chefProfile.rating}</p>
+                  <p className="text-xs text-orange-500">rating</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card>
             <CardHeader className="pb-3">
@@ -336,8 +336,8 @@ const MySubscription = () => {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               {[
-                { label: "Meal Type",   val: sub.preferences.mealType },
-                { label: "Meal Time",   val: sub.preferences.mealTime },
+                { label: "Meal Type", val: sub.preferences.mealType },
+                { label: "Meal Time", val: sub.preferences.mealTime },
                 { label: "Spice Level", val: sub.preferences.spiceLevel },
               ].map(row => (
                 <div key={row.label} className="flex justify-between">
