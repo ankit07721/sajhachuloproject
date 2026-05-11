@@ -27,6 +27,7 @@ import { TagInput } from "@/components/ui/tag-input";
 import { Switch } from "@/components/ui/switch";
 import api from "@/lib/api";
 import { MenuItem } from "@/types";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 interface MenuCategory {
   _id: string;
@@ -75,6 +76,7 @@ const EditItem = () => {
       });
 
       const imageUrl = response.data.data.url;
+      console.log("Admin Image upload success:", imageUrl);
       setItemData((prev) => ({ ...prev, image: imageUrl }));
       toast.success("Image uploaded successfully! ✅");
     } catch (err: any) {
@@ -178,6 +180,7 @@ const EditItem = () => {
 
   return (
     <div className="container mx-auto py-8 max-w-2xl">
+      <DashboardBackButton />
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader>
@@ -212,7 +215,7 @@ const EditItem = () => {
               {/* Current image preview */}
               {itemData.image && (
                 <div className="relative w-full h-48 rounded-xl overflow-hidden border">
-                  <img src={itemData.image} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={itemData.image} alt="Preview" className="w-full h-full object-cover" crossOrigin="anonymous" />
                   <button
                     type="button"
                     onClick={() => setItemData(prev => ({ ...prev, image: "" }))}

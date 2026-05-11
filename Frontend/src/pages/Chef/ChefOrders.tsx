@@ -9,14 +9,15 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import api from "@/lib/api";
 import { Link } from "react-router-dom";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 const statusStyle: Record<string, string> = {
-  pending:           "bg-gray-100 text-gray-600 border-gray-200",
-  confirmed:         "bg-blue-100 text-blue-700 border-blue-200",
-  preparing:         "bg-yellow-100 text-yellow-700 border-yellow-200",
-  ready:             "bg-orange-100 text-orange-700 border-orange-200",
-  "out-for-delivery":"bg-purple-100 text-purple-700 border-purple-200",
-  delivered:         "bg-green-100 text-green-700 border-green-200",
+  pending: "bg-gray-100 text-gray-600 border-gray-200",
+  confirmed: "bg-blue-100 text-blue-700 border-blue-200",
+  preparing: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  ready: "bg-orange-100 text-orange-700 border-orange-200",
+  "out-for-delivery": "bg-purple-100 text-purple-700 border-purple-200",
+  delivered: "bg-green-100 text-green-700 border-green-200",
 };
 
 const ChefOrders = () => {
@@ -52,11 +53,10 @@ const ChefOrders = () => {
 
   const OrderCard = ({ order }: { order: any }) => (
     <Card className="overflow-hidden">
-      <div className={`h-1 ${
-        order.status === "preparing" ? "bg-yellow-500" :
-        order.status === "ready" ? "bg-orange-500" :
-        order.status === "delivered" ? "bg-green-500" : "bg-primary"
-      }`} />
+      <div className={`h-1 ${order.status === "preparing" ? "bg-yellow-500" :
+          order.status === "ready" ? "bg-orange-500" :
+            order.status === "delivered" ? "bg-green-500" : "bg-primary"
+        }`} />
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div>
@@ -159,6 +159,7 @@ const ChefOrders = () => {
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
+      <DashboardBackButton />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -172,17 +173,14 @@ const ChefOrders = () => {
             </p>
           </div>
         </div>
-        <Link to="/chef/dashboard">
-          <Button variant="outline" size="sm">← Dashboard</Button>
-        </Link>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: "Active",    value: activeOrders.length,    color: "text-primary"    },
-          { label: "Completed", value: completedOrders.length, color: "text-green-600"  },
-          { label: "Total",     value: orders?.length ?? 0,    color: "text-foreground" },
+          { label: "Active", value: activeOrders.length, color: "text-primary" },
+          { label: "Completed", value: completedOrders.length, color: "text-green-600" },
+          { label: "Total", value: orders?.length ?? 0, color: "text-foreground" },
         ].map(s => (
           <Card key={s.label}>
             <CardContent className="p-3 text-center">

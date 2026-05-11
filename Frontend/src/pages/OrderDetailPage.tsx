@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import api from "@/lib/api";
 import { Order } from "@/types";
+import OrderStatusProgress from "@/components/OrderStatusProgress";
 
 const fetchOrderDetails = async (
   orderNumber: string,

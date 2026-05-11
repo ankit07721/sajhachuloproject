@@ -162,7 +162,7 @@ const Checkout = () => {
     onSuccess: async (response) => {
       const order = response.data.data;
       toast.success(`Order placed! #${order.orderNumber}`);
-      
+
       // Clear the cart now that order is placed
       clearCart();
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -176,6 +176,10 @@ const Checkout = () => {
           });
 
           if (paymentMethod === "esewa" && paymentInit.esewaConfig) {
+            console.log(
+              "Initiating eSewa payment with config:",
+              paymentInit.esewaConfig,
+            );
             const form = document.createElement("form");
             form.method = "POST";
             form.action = paymentInit.paymentActionUrl;

@@ -211,8 +211,7 @@ const OrderHistory = () => {
             >
               {/* Status color bar */}
               <div
-                className={`h-1 ${
-                  order.status === "delivered"
+                className={`h-1 ${order.status === "delivered"
                     ? "bg-green-500"
                     : order.status === "cancelled"
                       ? "bg-red-500"
@@ -221,7 +220,7 @@ const OrderHistory = () => {
                         : order.status === "preparing"
                           ? "bg-yellow-500"
                           : "bg-primary"
-                }`}
+                  }`}
               />
 
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -324,9 +323,9 @@ const OrderHistory = () => {
                         ⭐ Leave Review
                       </Button>
                     )}
-                    {/* <Link to={`/orders/${order.orderNumber}`}>
+                    <Link to={`/orders/${order.orderNumber || order._id}`}>
                       <Button variant="ghost" size="sm" className="text-xs">View Details →</Button>
-                    </Link> */}
+                    </Link>
                   </div>
                   <span className="font-bold text-lg text-primary">
                     NRs {order.pricing.total.toFixed(2)}

@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import api from "@/lib/api";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 interface Coupon {
   _id: string;
@@ -125,6 +126,7 @@ const ManageCoupons = () => {
 
   return (
     <div className="container py-8 max-w-4xl space-y-8">
+      <DashboardBackButton />
       <Card>
         <CardHeader>
           <CardTitle>Create New Coupon</CardTitle>

@@ -9,49 +9,58 @@ const About = () => {
     {
       icon: Heart,
       title: "Made with Love",
-      description: "Every dish is prepared with genuine care and passion by home cooks who love what they do.",
+      description:
+        "Every dish is prepared with genuine care and passion by home cooks who love what they do.",
     },
     {
       icon: Users,
       title: "Community First",
-      description: "We're building a community that celebrates home cooking and brings neighbors together through food.",
+      description:
+        "We're building a community that celebrates home cooking and brings neighbors together through food.",
     },
     {
       icon: Award,
       title: "Quality Promise",
-      description: "We maintain the highest standards for food safety, freshness, and taste in every meal.",
+      description:
+        "We maintain the highest standards for food safety, freshness, and taste in every meal.",
     },
     {
       icon: Clock,
       title: "Fresh Daily",
-      description: "All meals are prepared fresh daily to ensure maximum flavor and quality.",
+      description:
+        "All meals are prepared fresh daily to ensure maximum flavor and quality.",
     },
   ];
 
   // ✅ FIX: Realistic stats for a new platform
   const stats = [
-    { number: "100+",  label: "Happy Customers" },
+    { number: "100+", label: "Happy Customers" },
     { number: "4.8/5", label: "Average Rating" },
-    { number: "50+",   label: "Dishes Served Daily" },
-    { number: "98%",   label: "On-Time Delivery" },
+    { number: "50+", label: "Dishes Served Daily" },
+    { number: "98%", label: "On-Time Delivery" },
   ];
 
-  useEffect(() => { window.scrollTo(0, 0); }, []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background animate-fade-in">
-
       {/* Hero Section */}
       <section className="gradient-hero py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
             Our Story
           </h1>
-          {/* ✅ FIX: Brand name updated */}
+<<<<<<< HEAD
+
+=======
+       
+>>>>>>> 77b5c49efa0b5e5aef9d3b988a4152d435a5ea5d
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Sajha Chulo was born from a simple belief: the best meals come from the
-            heart. We're connecting passionate home cooks with food lovers in
-            their community, creating a marketplace where every bite tells a
+            Sajha Chulo was born from a simple belief: the best meals come from
+            the heart. We're connecting passionate home cooks with food lovers
+            in their community, creating a marketplace where every bite tells a
             story of tradition, love, and authentic flavor.
           </p>
         </div>
@@ -100,7 +109,9 @@ const About = () => {
                 <div className="text-4xl md:text-5xl font-bold text-primary mb-2">
                   {stat.number}
                 </div>
-                <div className="text-muted-foreground font-medium">{stat.label}</div>
+                <div className="text-muted-foreground font-medium">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
@@ -122,12 +133,21 @@ const About = () => {
               you at Sajha Chulo.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" variant="secondary" className="shadow-warm">
+              <Button
+                asChild
+                size="lg"
+                variant="secondary"
+                className="shadow-warm"
+              >
                 <Link to="/menu">Order Your First Meal</Link>
               </Button>
               {/* ✅ FIX: Links to /chef-apply not /contact */}
-              <Button asChild size="lg" variant="outline"
-                className="border-primary-foreground hover:bg-primary-foreground hover:text-primary">
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="border-primary-foreground hover:bg-primary-foreground hover:text-primary"
+              >
                 <Link to="/chef-apply">Become a Home Cook</Link>
               </Button>
             </div>

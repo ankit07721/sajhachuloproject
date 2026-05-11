@@ -157,7 +157,7 @@ router.post("/", authenticateToken, validateOrder, async (req, res) => {
       try {
         const deliveryInfo = LocationService.getDeliveryInfo(0, 0, subtotal);
         if (deliveryInfo.success) deliveryFee = deliveryInfo.fee;
-      } catch (e) {}
+      } catch (e) { }
     }
 
     // ── Coupon discount ────────────────────────────────────────────────────
@@ -252,20 +252,20 @@ router.post("/", authenticateToken, validateOrder, async (req, res) => {
         await userCart.save();
       }
 
-      // Send confirmation emails
-      try {
-        await sendOrderConfirmationEmail(customer.email, savedOrder);
-        
-        // Notify the Chef as well
-        if (savedOrder.assignedChef) {
-          const chef = await User.findById(savedOrder.assignedChef);
-          if (chef && chef.email) {
-            await sendChefNewOrderEmail(chef.email, savedOrder);
-          }
+    // Send confirmation emails
+    try {
+      await sendOrderConfirmationEmail(customer.email, savedOrder);
+      
+      // Notify the Chef as well
+      if (savedOrder.assignedChef) {
+        const chef = await User.findById(savedOrder.assignedChef);
+        if (chef && chef.email) {
+          await sendChefNewOrderEmail(chef.email, savedOrder);
         }
-      } catch (e) {
-        console.error("Email notification failed:", e);
       }
+    } catch (e) {
+      console.error("Email notification failed:", e);
+    }
 
     // Populate chef name for response
     await savedOrder.populate("assignedChef", "firstName lastName");
@@ -351,9 +351,13 @@ router.patch(
         });
       }
 
-      const order = await Order.findOne({
-        orderNumber: req.params.orderNumber,
-      });
+      const { orderNumber: identifier } = req.params;
+      let order = await Order.findOne({ orderNumber: identifier });
+
+      if (!order && mongoose.Types.ObjectId.isValid(identifier)) {
+        order = await Order.findById(identifier);
+      }
+
       if (!order)
         return res
           .status(404)
@@ -412,7 +416,7 @@ router.patch(
       if (customer?.email) {
         try {
           await sendOrderStatusUpdateEmail(customer.email, order, status);
-        } catch (e) {}
+        } catch (e) { }
       }
 
       res.json({
@@ -430,27 +434,39 @@ router.patch(
 
 // ── GET /api/orders/:orderNumber - Get single order ───────────────────────────
 router.get("/:orderNumber", authenticateToken, async (req, res) => {
+  console.log(`[DEBUG] Fetching order with identifier: ${req.params.orderNumber}`);
   try {
-    const order = await Order.findOne({ orderNumber: req.params.orderNumber })
+    const { orderNumber } = req.params;
+    let order = await Order.findOne({ orderNumber })
       .populate("items.menuItem", "name category image")
       .populate("customer", "firstName lastName email phone")
       .populate("assignedChef", "firstName lastName chefProfile");
+
+    if (!order && mongoose.Types.ObjectId.isValid(orderNumber)) {
+      order = await Order.findById(orderNumber)
+        .populate("items.menuItem", "name category image")
+        .populate("customer", "firstName lastName email phone")
+        .populate("assignedChef", "firstName lastName chefProfile");
+    }
 
     if (!order)
       return res
         .status(404)
         .json({ success: false, message: "Order not found" });
 
-    const isOwner = order.customer._id.toString() === req.user.id;
+    const userId = req.user._id.toString();
+    const customerId = order.customer._id ? order.customer._id.toString() : order.customer.toString();
+
+    const isOwner = customerId === userId;
     const isAdmin = req.user.role === "admin";
     const isAssignedChef = order.items.some(
-      (item) => item.chef?.toString() === req.user.id,
+      (item) => item.chef && item.chef.toString() === userId
     );
 
     if (!isOwner && !isAdmin && !isAssignedChef) {
       return res
         .status(403)
-        .json({ success: false, message: "Not authorized" });
+        .json({ success: false, message: "Not authorized to view this order" });
     }
 
     res.json({ success: true, data: order });
@@ -483,9 +499,13 @@ router.patch(
           .json({ success: false, message: "Invalid status" });
       }
 
-      const order = await Order.findOne({
-        orderNumber: req.params.orderNumber,
-      });
+      const { orderNumber: identifier } = req.params;
+      let order = await Order.findOne({ orderNumber: identifier });
+
+      if (!order && mongoose.Types.ObjectId.isValid(identifier)) {
+        order = await Order.findById(identifier);
+      }
+
       if (!order)
         return res
           .status(404)
@@ -511,7 +531,7 @@ router.patch(
       if (customer?.email) {
         try {
           await sendOrderStatusUpdateEmail(customer.email, order, status);
-        } catch (e) {}
+        } catch (e) { }
       }
 
       res.json({
@@ -530,10 +550,19 @@ router.patch(
 // ── PATCH /api/orders/:orderNumber/cancel - Customer cancels ──────────────────
 router.patch("/:orderNumber/cancel", authenticateToken, async (req, res) => {
   try {
-    const order = await Order.findOne({
-      orderNumber: req.params.orderNumber,
+    const { orderNumber: identifier } = req.params;
+    let order = await Order.findOne({
+      orderNumber: identifier,
       customer: req.user.id,
     });
+
+    if (!order && mongoose.Types.ObjectId.isValid(identifier)) {
+      order = await Order.findOne({
+        _id: identifier,
+        customer: req.user.id
+      });
+    }
+
     if (!order)
       return res
         .status(404)

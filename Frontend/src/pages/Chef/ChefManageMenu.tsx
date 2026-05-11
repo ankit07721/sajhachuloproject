@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import api from "@/lib/api";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 const ChefManageMenu = () => {
   const queryClient = useQueryClient();
@@ -47,6 +48,7 @@ const ChefManageMenu = () => {
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
+      <DashboardBackButton />
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -140,12 +142,6 @@ const ChefManageMenu = () => {
         </div>
       )}
 
-      {/* Back to dashboard */}
-      <div className="mt-6">
-        <Link to="/chef/dashboard">
-          <Button variant="outline">← Back to Dashboard</Button>
-        </Link>
-      </div>
     </div>
   );
 };

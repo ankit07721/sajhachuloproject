@@ -45,6 +45,7 @@ import {
 import api from "@/lib/api";
 import { MenuItem, ApiResponse } from "@/types"; // Use the existing ApiResponse type
 import { Skeleton } from "@/components/ui/skeleton";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 const ManageMenu = () => {
   const [page, setPage] = useState(1);
@@ -76,120 +77,119 @@ const ManageMenu = () => {
   const totalPages = data?.data?.totalPages || 1;
 
   return (
-    <div className="space-y-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">Manage Menu Items</CardTitle>
-              <CardDescription>
-                Add, edit, or delete items from the menu.
-              </CardDescription>
-            </div>
-            <Button onClick={() => navigate("/admin/add-item")}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Image</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Available</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading &&
-                  Array.from({ length: 10 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell colSpan={6}>
-                        <Skeleton className="h-16 w-full" />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                {!isLoading && menuItems.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24">
-                      No menu items found.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {menuItems.map((item) => (
-                  <TableRow key={item._id}>
-                    <TableCell>
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="h-16 w-16 rounded-md object-cover"
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell className="capitalize">
-                      {item.subCategory.replace("-", " ")}
-                    </TableCell>
-                    <TableCell>NRs {item.price}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={item.isAvailable ? "default" : "secondary"}
-                      >
-                        {item.isAvailable ? "Yes" : "No"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate(`/admin/edit-item/${item._id}`)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setItemToDelete(item)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+    <div className="container mx-auto py-8">
+      <DashboardBackButton />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl">Manage Menu Items</CardTitle>
+            <CardDescription>
+              Add, edit, or delete items from the menu.
+            </CardDescription>
+          </div>
+          <Button onClick={() => navigate("/admin/add-item")}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">Image</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Available</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading &&
+                Array.from({ length: 10 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={6}>
+                      <Skeleton className="h-16 w-full" />
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        {totalPages > 1 && (
-          <Pagination className="mt-6">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPage((p) => Math.max(1, p - 1));
-                  }}
-                />
-              </PaginationItem>
-              <PaginationItem>
-                <span className="text-sm font-medium">
-                  Page {page} of {totalPages}
-                </span>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setPage((p) => Math.min(totalPages, p + 1));
-                  }}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        )}
+              {!isLoading && menuItems.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center h-24">
+                    No menu items found.
+                  </TableCell>
+                </TableRow>
+              )}
+              {menuItems.map((item) => (
+                <TableRow key={item._id}>
+                  <TableCell>
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="h-16 w-16 rounded-md object-cover"
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="capitalize">
+                    {item.subCategory.replace("-", " ")}
+                  </TableCell>
+                  <TableCell>NRs {item.price}</TableCell>
+                  <TableCell>
+                    <Badge variant={item.isAvailable ? "default" : "secondary"}>
+                      {item.isAvailable ? "Yes" : "No"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate(`/admin/edit-item/${item._id}`)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setItemToDelete(item)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      {totalPages > 1 && (
+        <Pagination className="mt-6">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <span className="text-sm font-medium">
+                Page {page} of {totalPages}
+              </span>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage((p) => Math.min(totalPages, p + 1));
+                }}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
       <AlertDialog
         open={!!itemToDelete}
         onOpenChange={() => setItemToDelete(null)}

@@ -8,11 +8,16 @@ const { authenticateToken, authorizeRole } = require("../middleware/auth");
 // Helper: format User → Chef shape that frontend expects
 const formatChef = (user) => ({
   _id: user._id,
+  firstName: user.firstName,
+  lastName: user.lastName,
   name: `${user.firstName} ${user.lastName}`,
   bio: user.chefProfile?.bio || "",
   photo: user.chefProfile?.photo || "",
   specialty: user.chefProfile?.specialty || "Home Cooking",
-  location: user.address?.city || "Kathmandu",
+  location: {
+    city: user.address?.city || "Kathmandu",
+    street: user.address?.street || "",
+  },
   rating: user.chefProfile?.rating || 0,
   totalOrders: user.chefProfile?.totalOrders || 0,
   badges: user.chefProfile?.badges || [],
@@ -20,21 +25,51 @@ const formatChef = (user) => ({
   isAvailable: user.chefProfile?.isAvailable ?? true,
   isActive: user.isActive,
   applicationStatus: user.chefProfile?.applicationStatus,
-  kitchenLat: user.location?.latitude  || null,
+  kitchenLat: user.location?.latitude || null,
   kitchenLng: user.location?.longitude || null,
 });
 
 // GET /api/chefs — public, only approved chefs
 router.get("/", async (req, res) => {
   try {
-    const chefs = await User.find({
+    const { lat, lng } = req.query;
+    const LocationService = require("../services/locationService");
+
+    let chefs = await User.find({
       role: "chef",
       isActive: true,
       "chefProfile.applicationStatus": "approved",
-      "chefProfile.isAvailable": true,
-    }).sort({ "chefProfile.rating": -1 });
+    });
 
-    res.json({ success: true, chefs: chefs.map(formatChef) });
+    let formattedChefs = chefs.map(formatChef);
+
+    // If coordinates provided, add distance and sort
+    if (lat && lng) {
+      formattedChefs = formattedChefs.map((chef) => {
+        if (chef.kitchenLat && chef.kitchenLng) {
+          const distance = LocationService.calculateHaversineDistance(
+            parseFloat(lat),
+            parseFloat(lng),
+            chef.kitchenLat,
+            chef.kitchenLng,
+          );
+          return { ...chef, distance };
+        }
+        return { ...chef, distance: null };
+      });
+
+      // Show nearby chefs first, then those with no distance info
+      formattedChefs.sort((a, b) => {
+        if (a.distance === null) return 1;
+        if (b.distance === null) return -1;
+        return a.distance - b.distance;
+      });
+    } else {
+      // Default sort by rating
+      formattedChefs.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    }
+
+    res.json({ success: true, chefs: formattedChefs });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -43,8 +78,13 @@ router.get("/", async (req, res) => {
 // GET /api/chefs/batch?ids=1,2,3 — get multiple chefs by IDs
 router.get("/batch", async (req, res) => {
   try {
-    const ids = req.query.ids ? req.query.ids.split(',').map(id => id.trim()) : [];
-    if (ids.length === 0) return res.status(400).json({ success: false, message: "No IDs provided" });
+    const ids = req.query.ids
+      ? req.query.ids.split(",").map((id) => id.trim())
+      : [];
+    if (ids.length === 0)
+      return res
+        .status(400)
+        .json({ success: false, message: "No IDs provided" });
 
     const chefs = await User.find({
       _id: { $in: ids },
@@ -59,79 +99,122 @@ router.get("/batch", async (req, res) => {
   }
 });
 
-// POST /api/chefs — admin only (manual chef creation)
-router.post("/", authenticateToken, authorizeRole("admin"), async (req, res) => {
+// GET /api/chefs/:chefId — public, chef + their menu items
+router.get("/:chefId", async (req, res) => {
   try {
-    const { name, bio, photo, specialty, location, phone, badges } = req.body;
-    if (!name) return res.status(400).json({ success: false, message: "Name is required" });
+    const user = await User.findOne({ _id: req.params.chefId, role: "chef" });
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "Chef not found" });
 
-    const [firstName, ...rest] = name.trim().split(" ");
-    const lastName = rest.join(" ") || "Chef";
-
-    const chef = new User({
-      firstName,
-      lastName,
-      email: `chef_${Date.now()}@plateful.com`,
-      phone: phone || "9800000000",
-      password: Math.random().toString(36).slice(-8) + "A1!",
-      role: "chef",
-      address: {
-        street: location || "Kathmandu",
-        city: location || "Kathmandu",
-        state: "Bagmati",
-        zipCode: "44600",
-      },
-      chefProfile: {
-        bio,
-        photo,
-        specialty,
-        badges: badges || [],
-        applicationStatus: "approved",
-        approvedAt: new Date(),
-      },
+    const menuItems = await MenuItem.find({
+      createdBy: req.params.chefId,
+      isAvailable: true,
     });
-
-    await chef.save();
-    res.status(201).json({ success: true, chef: formatChef(chef) });
+    res.json({ success: true, chef: formatChef(user), menuItems });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// POST /api/chefs — admin only (manual chef creation)
+router.post(
+  "/",
+  authenticateToken,
+  authorizeRole("admin"),
+  async (req, res) => {
+    try {
+      const { name, bio, photo, specialty, location, phone, badges } = req.body;
+      if (!name)
+        return res
+          .status(400)
+          .json({ success: false, message: "Name is required" });
+
+      const [firstName, ...rest] = name.trim().split(" ");
+      const lastName = rest.join(" ") || "Chef";
+
+      const chef = new User({
+        firstName,
+        lastName,
+        email: `chef_${Date.now()}@plateful.com`,
+        phone: phone || "9800000000",
+        password: Math.random().toString(36).slice(-8) + "A1!",
+        role: "chef",
+        address: {
+          street: location || "Kathmandu",
+          city: location || "Kathmandu",
+          state: "Bagmati",
+          zipCode: "44600",
+        },
+        chefProfile: {
+          bio,
+          photo,
+          specialty,
+          badges: badges || [],
+          applicationStatus: "approved",
+          approvedAt: new Date(),
+        },
+      });
+
+      await chef.save();
+      res.status(201).json({ success: true, chef: formatChef(chef) });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  },
+);
 
 // PUT /api/chefs/:chefId — admin only
-router.put("/:chefId", authenticateToken, authorizeRole("admin"), async (req, res) => {
-  try {
-    const { name, bio, photo, specialty, location, badges } = req.body;
-    const updateData = {};
+router.put(
+  "/:chefId",
+  authenticateToken,
+  authorizeRole("admin"),
+  async (req, res) => {
+    try {
+      const { name, bio, photo, specialty, location, badges } = req.body;
+      const updateData = {};
 
-    if (name) {
-      const [firstName, ...rest] = name.trim().split(" ");
-      updateData.firstName = firstName;
-      updateData.lastName = rest.join(" ") || "Chef";
+      if (name) {
+        const [firstName, ...rest] = name.trim().split(" ");
+        updateData.firstName = firstName;
+        updateData.lastName = rest.join(" ") || "Chef";
+      }
+      if (bio !== undefined) updateData["chefProfile.bio"] = bio;
+      if (photo !== undefined) updateData["chefProfile.photo"] = photo;
+      if (specialty !== undefined)
+        updateData["chefProfile.specialty"] = specialty;
+      if (badges !== undefined) updateData["chefProfile.badges"] = badges;
+      if (location !== undefined) updateData["address.city"] = location;
+
+      const chef = await User.findByIdAndUpdate(req.params.chefId, updateData, {
+        new: true,
+      });
+      if (!chef)
+        return res
+          .status(404)
+          .json({ success: false, message: "Chef not found" });
+
+      res.json({ success: true, chef: formatChef(chef) });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
     }
-    if (bio !== undefined)       updateData["chefProfile.bio"]       = bio;
-    if (photo !== undefined)     updateData["chefProfile.photo"]     = photo;
-    if (specialty !== undefined) updateData["chefProfile.specialty"] = specialty;
-    if (badges !== undefined)    updateData["chefProfile.badges"]    = badges;
-    if (location !== undefined)  updateData["address.city"]          = location;
-
-    const chef = await User.findByIdAndUpdate(req.params.chefId, updateData, { new: true });
-    if (!chef) return res.status(404).json({ success: false, message: "Chef not found" });
-
-    res.json({ success: true, chef: formatChef(chef) });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
+  },
+);
 
 // DELETE /api/chefs/:chefId — admin only (soft delete)
-router.delete("/:chefId", authenticateToken, authorizeRole("admin"), async (req, res) => {
-  try {
-    await User.findByIdAndUpdate(req.params.chefId, { isActive: false });
-    res.json({ success: true, message: "Chef deactivated" });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
+router.delete(
+  "/:chefId",
+  authenticateToken,
+  authorizeRole("admin"),
+  async (req, res) => {
+    try {
+      await User.findByIdAndUpdate(req.params.chefId, { isActive: false });
+      res.json({ success: true, message: "Chef deactivated" });
+    } catch (err) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  },
+);
 
 module.exports = router;
