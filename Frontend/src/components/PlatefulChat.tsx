@@ -639,7 +639,10 @@ export default function PlatefulChat() {
       const allItems: DishKB[] = [];
       categories.forEach((cat: any) => {
         (cat.items || []).forEach((item: any) => {
-          allItems.push(mapMenuItem(item));
+          // Only include if item is available (which now respects chef status)
+          if (item.isAvailable) {
+            allItems.push(mapMenuItem(item));
+          }
         });
       });
 

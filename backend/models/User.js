@@ -63,6 +63,7 @@ const userSchema = new mongoose.Schema({
     rejectedAt: { type: Date },
     rating: { type: Number, default: 0 },
     totalOrders: { type: Number, default: 0 },
+    isAvailable: { type: Boolean, default: true },
     badges: [{ type: String }],
   },
 

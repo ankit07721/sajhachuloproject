@@ -154,8 +154,9 @@ const Checkout = () => {
       const order = response.data.data;
       toast.success(`Order placed! #${order.orderNumber}`);
       
-      // We no longer clear the cart here to satisfy the requirement of not clearing it.
-      // queryClient.invalidateQueries({ queryKey: ["orders"] });
+      // Clear the cart now that order is placed
+      clearCart();
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
 
       // ── Handle Payment Redirection ──
       if (paymentMethod === "esewa" || paymentMethod === "khalti") {
@@ -187,10 +188,10 @@ const Checkout = () => {
           toast.error(
             "Order placed, but payment initiation failed. Please try paying from order history.",
           );
-          navigate("/order-history");
+          navigate("/orders");
         }
       } else {
-        navigate("/order-history");
+        navigate("/orders");
       }
     },
     onError: (error: any) => {

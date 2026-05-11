@@ -13,11 +13,11 @@ interface Subscription {
   _id: string;
   planName: string;
   planSlug: string;
-  status: "active" | "paused" | "cancelled" | "expired";
+  status: "pending_approval" | "approved" | "active" | "paused" | "cancelled" | "expired";
   startDate: string;
   endDate: string;
   totalAmount: number;
-  paymentStatus: string;
+  paymentStatus: "unpaid" | "pending" | "paid";
   preferences: {
     mealType: string;
     mealTime: string;
@@ -54,10 +54,12 @@ const fetchMySub = async (): Promise<Subscription | null> => {
 };
 
 const statusConfig = {
-  active:    { color: "bg-green-100 text-green-700 border-green-200",    icon: <CheckCircle className="h-4 w-4" />,  label: "Active" },
-  paused:    { color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: <PauseCircle className="h-4 w-4" />, label: "Paused" },
-  cancelled: { color: "bg-red-100 text-red-700 border-red-200",          icon: <XCircle className="h-4 w-4" />,     label: "Cancelled" },
-  expired:   { color: "bg-gray-100 text-gray-600 border-gray-200",       icon: <XCircle className="h-4 w-4" />,     label: "Expired" },
+  pending_approval: { color: "bg-blue-100 text-blue-700 border-blue-200", icon: <Clock className="h-4 w-4" />, label: "Waiting for Chef" },
+  approved:         { color: "bg-purple-100 text-purple-700 border-purple-200", icon: <CheckCircle className="h-4 w-4" />, label: "Approved" },
+  active:           { color: "bg-green-100 text-green-700 border-green-200",    icon: <CheckCircle className="h-4 w-4" />,  label: "Active" },
+  paused:           { color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: <PauseCircle className="h-4 w-4" />, label: "Paused" },
+  cancelled:        { color: "bg-red-100 text-red-700 border-red-200",          icon: <XCircle className="h-4 w-4" />,     label: "Cancelled" },
+  expired:          { color: "bg-gray-100 text-gray-600 border-gray-200",       icon: <XCircle className="h-4 w-4" />,     label: "Expired" },
 };
 
 const MySubscription = () => {
@@ -86,6 +88,41 @@ const MySubscription = () => {
     onSuccess: () => { toast.success("Subscription cancelled."); queryClient.invalidateQueries({ queryKey: ["mySubscription"] }); },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to cancel."),
   });
+
+  const claimMutation = useMutation({
+    mutationFn: () => api.post("/subscriptions/claim-meal"),
+    onSuccess: () => { 
+      toast.success("Meal claimed successfully! Your chef has been notified. ✅"); 
+      navigate("/orders"); // Redirect to orders to see the status
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to claim meal."),
+  });
+
+  const handlePayment = async (method: "esewa" | "khalti") => {
+    try {
+      const { data } = await api.post("/payment/initiate-subscription", {
+        subscriptionId: sub?._id,
+        method
+      });
+
+      if (method === "esewa" && data.esewaConfig) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = data.paymentActionUrl;
+        Object.entries(data.esewaConfig).forEach(([k, v]) => {
+          const input = document.createElement("input");
+          input.type = "hidden"; input.name = k; input.value = String(v);
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+      } else if (method === "khalti" && data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Payment initiation failed.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -119,7 +156,7 @@ const MySubscription = () => {
   const totalDays = sub.plan.durationDays;
   const daysUsed = totalDays - daysLeft;
   const progressPct = Math.min(100, Math.max(0, (daysUsed / totalDays) * 100));
-  const sc = statusConfig[sub.status];
+  const sc = (statusConfig as any)[sub.status] || statusConfig.active;
 
   return (
     <div className="min-h-screen bg-background py-10 animate-fade-in">
@@ -135,6 +172,81 @@ const MySubscription = () => {
             {sc.icon}{sc.label}
           </Badge>
         </div>
+
+        {/* 💳 PAYMENT SECTION (NEW) */}
+        {sub.status === "approved" && sub.paymentStatus === "unpaid" && (
+          <Card className="mb-6 border-purple-200 bg-purple-50 shadow-lg animate-in zoom-in-95 duration-500">
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto shadow-sm">
+                  <span className="text-3xl">🎉</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-purple-900">Great News! Your Chef is Ready.</h3>
+                  <p className="text-sm text-purple-700 max-w-md mx-auto">
+                    Chef {sub.assignedChefName} has approved your subscription request. 
+                    Please complete the payment below to activate your 30-day meal plan.
+                  </p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  <Button className="bg-[#602D7E] hover:bg-[#4d2465] text-white w-full sm:w-48 h-12 font-bold"
+                    onClick={() => handlePayment("khalti")}>
+                    Pay with Khalti
+                  </Button>
+                  <Button className="bg-[#41a124] hover:bg-[#34811d] text-white w-full sm:w-48 h-12 font-bold"
+                    onClick={() => handlePayment("esewa")}>
+                    Pay with eSewa
+                  </Button>
+                </div>
+                <p className="text-[10px] text-purple-400 uppercase tracking-widest font-bold">Secure Payment via Fonepay / Khalti SDK</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ⏳ PENDING APPROVAL SECTION (NEW) */}
+        {sub.status === "pending_approval" && (
+          <Card className="mb-6 border-blue-100 bg-blue-50/50">
+            <CardContent className="p-6 flex items-center gap-4">
+              <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />
+              <div>
+                <h3 className="font-bold text-blue-900">Waiting for Chef Approval</h3>
+                <p className="text-sm text-blue-700">Chef {sub.assignedChefName} is reviewing your request. We'll notify you once they approve!</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* CLAIM MEAL SECTION */}
+        {sub.status === "active" && sub.paymentStatus === "paid" && (
+          <Card className="mb-6 border-primary bg-primary/5 shadow-lg shadow-primary/5">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white shrink-0">
+                    <CheckCircle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-foreground">Ready for your meal?</h3>
+                    <p className="text-sm text-muted-foreground">Click below to claim your daily subscription meal.</p>
+                  </div>
+                </div>
+                <Button 
+                  className="gradient-primary w-full md:w-auto h-12 px-8 font-bold"
+                  onClick={() => claimMutation.mutate()}
+                  disabled={claimMutation.isPending}
+                >
+                  {claimMutation.isPending ? (
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  ) : (
+                    "🍴 Claim My Daily Meal"
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main Card */}
         <Card className="mb-6 overflow-hidden">

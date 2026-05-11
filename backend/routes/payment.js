@@ -60,8 +60,8 @@ router.post("/initiate", authenticateToken, async (req, res) => {
         product_code: process.env.ESEWA_MERCHANT_CODE || "EPAYTEST",
         product_service_charge: "0",
         product_delivery_charge: "0",
-        success_url: `${process.env.BASE_URL}/api/payment/verify/esewa/${orderId}`,
-        failure_url: `${process.env.FRONTEND_URL || process.env.BASE_URL}/order-history`,
+        success_url: `${process.env.BACKEND_URL}/api/payment/verify/esewa/${orderId}`,
+        failure_url: `${process.env.FRONTEND_URL}/orders`,
         signed_field_names: "total_amount,transaction_uuid,product_code",
       };
 

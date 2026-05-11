@@ -173,12 +173,27 @@ const getMaxValues = (items) => ({
 // ═══════════════════════════════════════════════════════════════════════════
 class RecommendationService {
 
+  // Helper to get only online chef IDs
+  static async getOnlineChefIds() {
+    const User = require('../models/User');
+    const onlineChefs = await User.find({ 
+      role: 'chef', 
+      'chefProfile.isAvailable': true,
+      'chefProfile.applicationStatus': 'approved'
+    }).select('_id');
+    return onlineChefs.map(c => c._id);
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // 1. SIMILAR ITEMS — Cosine Similarity
   // "Customers who liked this also liked..."
   // ─────────────────────────────────────────────────────────────────────────
   static async getSimilarItems(itemId, limit = 5) {
-    const allItems = await MenuItem.find({ isAvailable: true });
+    const onlineChefIds = await this.getOnlineChefIds();
+    const allItems = await MenuItem.find({ 
+      isAvailable: true,
+      createdBy: { $in: onlineChefIds }
+    });
     const baseItem = allItems.find(i => i._id.toString() === itemId);
     if (!baseItem) return [];
 
@@ -222,7 +237,11 @@ class RecommendationService {
       return this.getPopularItems(limit);
     }
 
-    const allItems  = await MenuItem.find({ isAvailable: true });
+    const onlineChefIds = await this.getOnlineChefIds();
+    const allItems  = await MenuItem.find({ 
+      isAvailable: true,
+      createdBy: { $in: onlineChefIds }
+    });
     const maxValues = getMaxValues(allItems);
 
     // Build USER PREFERENCE VECTOR = average of all ordered item vectors
@@ -265,7 +284,12 @@ class RecommendationService {
   // 3. CATEGORY RECOMMENDATIONS — TOPSIS within category
   // ─────────────────────────────────────────────────────────────────────────
   static async getCategoryRecommendations(category, limit = 10) {
-    const items = await MenuItem.find({ category, isAvailable: true });
+    const onlineChefIds = await this.getOnlineChefIds();
+    const items = await MenuItem.find({ 
+      category, 
+      isAvailable: true,
+      createdBy: { $in: onlineChefIds }
+    });
     if (items.length === 0) return [];
 
     const maxValues = getMaxValues(items);
@@ -285,9 +309,11 @@ class RecommendationService {
     };
 
     const subCategories = timeMap[timeSlot] || timeMap['afternoon'];
+    const onlineChefIds = await this.getOnlineChefIds();
     const items = await MenuItem.find({
       subCategory: { $in: subCategories },
       isAvailable: true,
+      createdBy: { $in: onlineChefIds }
     });
 
     if (items.length === 0) return this.getPopularItems(limit);
@@ -300,7 +326,11 @@ class RecommendationService {
   // 5. POPULAR ITEMS — Bayesian + TOPSIS hybrid
   // ─────────────────────────────────────────────────────────────────────────
   static async getPopularItems(limit = 10) {
-    const items = await MenuItem.find({ isAvailable: true });
+    const onlineChefIds = await this.getOnlineChefIds();
+    const items = await MenuItem.find({ 
+      isAvailable: true,
+      createdBy: { $in: onlineChefIds }
+    });
     if (items.length === 0) return [];
 
     // Calculate global average for Bayesian

@@ -150,24 +150,17 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <div className="flex gap-4 items-center">
-          <NotificationBell />
-          <Button
-            variant="outline"
-            onClick={logout}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <LogOut className="mr-2 h-4 w-4" /> Logout
-          </Button>
-          <Link to="/admin/add-item">
-            <Button>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
-            </Button>
-          </Link>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Dashboard Overview</h2>
+          <p className="text-slate-500">Welcome back! Here's what's happening today.</p>
         </div>
+        <Link to="/admin/add-item">
+          <Button className="shadow-lg shadow-primary/20">
+            <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
+          </Button>
+        </Link>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -24,12 +24,12 @@ const subscriptionSchema = new mongoose.Schema(
  
     status: {
       type: String,
-      enum: ["active","paused","cancelled","expired"],
-      default: "active",
+      enum: ["pending_approval", "approved", "active", "paused", "cancelled", "expired"],
+      default: "pending_approval",
     },
  
     totalAmount:   { type: Number, required: true },
-    paymentStatus: { type: String, enum: ["pending","paid"],           default: "pending" },
+    paymentStatus: { type: String, enum: ["unpaid", "pending", "paid"],           default: "unpaid" },
     paymentMethod: { type: String, enum: ["khalti","esewa","cod"],     default: "cod" },
  
     assignedChef:     { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
