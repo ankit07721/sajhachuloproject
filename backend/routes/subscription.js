@@ -15,6 +15,7 @@ const assignNearestChef = async (deliveryCoords) => {
     const chefs = await User.find({
       role: "chef",
       "chefProfile.applicationStatus": "approved",
+      "chefProfile.isAvailable": true,
       "location.latitude":  { $exists: true },
       "location.longitude": { $exists: true },
     });
@@ -118,35 +119,41 @@ router.post("/", authenticateToken, async (req, res) => {
     // Expire overdue before checking for existing
     await Subscription.expireOverdue();
 
-    // Block duplicate active subscription
+    // Block duplicate active or pending subscription
     const existing = await Subscription.findOne({
       user:   req.user._id,
-      status: { $in: ["active", "paused"] },
+      status: { $in: ["active", "paused", "pending_approval", "approved"] },
     });
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: "You already have an active subscription. Cancel it first.",
+        message: "You already have a subscription in progress or active. Please manage it in your dashboard.",
       });
     }
 
     const plan = await TiffinPlan.findById(planId);
     if (!plan) return res.status(404).json({ success: false, message: "Plan not found" });
 
-    // ── Dates ──────────────────────────────────────────────────────────────
+    // Handle Chef Assignment (Use user selection or fallback to nearest)
+    let finalChef = null;
+    const { assignedChef: selectedChefId } = req.body;
+    
+    if (selectedChefId) {
+      finalChef = await User.findById(selectedChefId);
+    } else {
+      finalChef = await assignNearestChef(deliveryCoords);
+    }
+
+    // ── Dates (Start date only becomes real once ACTIVATED/PAID) ──────────────
     const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0); // start of today
+    startDate.setHours(0, 0, 0, 0); 
 
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + plan.durationDays);
-    endDate.setHours(23, 59, 59, 999); // end of last day
 
     // Price
     const weeks = plan.durationDays / 7;
     const total = plan.pricePerWeek * weeks * (1 - plan.discountPercent / 100);
-
-    // Haversine chef assignment
-    const nearestChef = await assignNearestChef(deliveryCoords);
 
     const sub = await Subscription.create({
       user:             req.user._id,
@@ -158,11 +165,12 @@ router.post("/", authenticateToken, async (req, res) => {
       startDate,
       endDate,
       totalAmount:      Math.round(total),
-      paymentStatus:    "pending",
+      status:           "pending_approval",
+      paymentStatus:    "unpaid",
       paymentMethod:    paymentMethod || "cod",
-      assignedChef:     nearestChef?._id    || null,
-      assignedChefName: nearestChef
-        ? `${nearestChef.firstName} ${nearestChef.lastName}`
+      assignedChef:     finalChef?._id    || null,
+      assignedChefName: finalChef
+        ? `${finalChef.firstName} ${finalChef.lastName}`
         : null,
     });
 
@@ -309,6 +317,157 @@ router.post("/admin/seed-plans", authenticateToken, authorizeRole("admin"), asyn
       },
     ]);
     res.json({ success: true, message: "Plans seeded!", data: plans });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH: CLAIM DAILY MEAL
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/claim-meal", authenticateToken, async (req, res) => {
+  try {
+    const Order = require("../models/Order");
+    const mongoose = require("mongoose");
+    
+    // 1. Find active subscription
+    const sub = await Subscription.findOne({
+      user:   req.user._id,
+      status: "active",
+      paymentStatus: "paid"
+    }).populate("plan");
+
+    if (!sub) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "You need an active, paid subscription to claim a meal." 
+      });
+    }
+
+    // 2. Check if already claimed today
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const alreadyClaimed = await Order.findOne({
+      customer: req.user._id,
+      paymentMethod: "subscription",
+      createdAt: { $gte: startOfToday, $lte: endOfToday },
+      status: { $ne: "cancelled" }
+    });
+
+    if (alreadyClaimed) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "You have already claimed your meal for today!" 
+      });
+    }
+
+    // 3. Create the order
+    const order = new Order({
+      customer: req.user._id,
+      customerInfo: {
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        email: req.user.email,
+        phone: sub.deliveryAddress?.phone || req.user.phone,
+        address: `${sub.deliveryAddress?.street}, ${sub.deliveryAddress?.city}`
+      },
+      items: [{
+        name: `${sub.planName} Daily Meal`,
+        price: 0,
+        quantity: 1,
+        subtotal: 0,
+        chef: sub.assignedChef,
+        chefName: sub.assignedChefName
+      }],
+      pricing: {
+        subtotal: 0,
+        tax: 0,
+        deliveryFee: 0,
+        discount: 0,
+        total: 0
+      },
+      paymentMethod: "subscription",
+      paymentStatus: "paid", // Already covered by subscription
+      assignedChef: sub.assignedChef,
+      status: "pending"
+    });
+
+    await order.save();
+
+    res.json({ 
+      success: true, 
+      message: "Meal claimed successfully! Your chef has been notified.", 
+      data: order 
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN: REASSIGN CHEF
+// ─────────────────────────────────────────────────────────────────────────────
+router.put("/admin/:id/reassign-chef", authenticateToken, authorizeRole("admin"), async (req, res) => {
+  try {
+    const { chefId } = req.body;
+    const sub = await Subscription.findById(req.params.id);
+    const chef = await User.findById(chefId);
+
+    if (!sub || !chef) return res.status(404).json({ success: false, message: "Subscription or Chef not found" });
+
+    sub.assignedChef = chef._id;
+    sub.assignedChefName = `${chef.firstName} ${chef.lastName}`;
+    await sub.save();
+
+    res.json({ success: true, message: "Chef reassigned successfully!", data: sub });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHEF: GET PENDING REQUESTS
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/chef/requests", authenticateToken, authorizeRole("chef"), async (req, res) => {
+  try {
+    const requests = await Subscription.find({
+      assignedChef: req.user.id,
+      status: "pending_approval"
+    }).populate("user", "firstName lastName email phone");
+
+    res.json({ success: true, data: requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHEF: APPROVE REQUEST
+// ─────────────────────────────────────────────────────────────────────────────
+router.put("/:id/approve", authenticateToken, authorizeRole("chef"), async (req, res) => {
+  try {
+    const sub = await Subscription.findOne({ _id: req.params.id, assignedChef: req.user.id });
+    if (!sub) return res.status(404).json({ success: false, message: "Subscription request not found" });
+
+    sub.status = "approved";
+    await sub.save();
+
+    // Notify customer
+    try {
+      await Notification.create({
+        recipient: sub.user,
+        type: "subscription_update",
+        title: "Subscription Approved! 🎉",
+        message: `Your subscription for ${sub.planName} has been approved by the chef. Please complete payment to activate.`,
+        link: "/my-subscription",
+      });
+    } catch (nErr) {}
+
+    res.json({ success: true, message: "Subscription approved! Waiting for customer payment.", data: sub });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

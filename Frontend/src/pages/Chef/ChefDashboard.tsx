@@ -212,10 +212,39 @@ function EditProfileModal({
 const ChefDashboard = () => {
   const { user, logout } = useAuth();
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Fetch Pending Subscription Requests
+  const { data: subRequests } = useQuery({
+    queryKey: ["chefSubRequests"],
+    queryFn: async () => {
+      const { data } = await api.get("/subscriptions/chef/requests");
+      return data.data;
+    },
+  });
+
+  const { mutate: approveSub, isPending: isApproving } = useMutation({
+    mutationFn: (id: string) => api.put(`/subscriptions/${id}/approve`),
+    onSuccess: () => {
+      toast.success("Subscription approved! Customer will be notified to pay.");
+      queryClient.invalidateQueries({ queryKey: ["chefSubRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["chefDashboard"] });
+    },
+    onError: () => toast.error("Failed to approve subscription"),
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["chefDashboard"],
     queryFn: fetchChefDashboard,
+  });
+
+  const { mutate: toggleAvailability, isPending: isToggling } = useMutation({
+    mutationFn: (isAvailable: boolean) => api.put("/chef/availability", { isAvailable }),
+    onSuccess: () => {
+      toast.success("Availability updated!");
+      queryClient.invalidateQueries({ queryKey: ["chefDashboard"] });
+    },
+    onError: () => toast.error("Failed to update availability"),
   });
 
   if (isLoading) {
@@ -227,6 +256,7 @@ const ChefDashboard = () => {
   }
 
   const chef = data?.chef;
+  const isAvailable = chef?.chefProfile?.isAvailable ?? true;
   const status = chef?.chefProfile?.applicationStatus;
 
   if (status === "pending") {
@@ -289,6 +319,16 @@ const ChefDashboard = () => {
                 <Badge className="bg-green-100 text-green-700 border-green-200">
                   ✅ Approved Chef
                 </Badge>
+                
+                <Button 
+                  onClick={() => toggleAvailability(!isAvailable)}
+                  disabled={isToggling}
+                  variant={isAvailable ? "default" : "outline"}
+                  className={`h-8 text-xs gap-1.5 ${isAvailable ? "bg-green-600 hover:bg-green-700" : "text-red-600 border-red-200 hover:bg-red-50"}`}
+                >
+                  {isToggling ? <Loader2 className="h-3 w-3 animate-spin" /> : <div className={`w-2 h-2 rounded-full ${isAvailable ? "bg-white" : "bg-red-600"} animate-pulse`} />}
+                  {isAvailable ? "Online" : "Offline"}
+                </Button>
               </div>
               <p className="text-primary font-semibold mt-0.5">
                 {chef?.chefProfile?.specialty || "Home Cook"}
@@ -342,8 +382,8 @@ const ChefDashboard = () => {
                 color: "text-yellow-500",
               },
               {
-                title: "Reviews",
-                value: data?.recentReviews?.length ?? 0,
+                title: "Active Subs",
+                value: data?.activeSubscriptions?.length ?? 0,
                 icon: CheckCircle,
                 color: "text-green-500",
               },
@@ -390,12 +430,12 @@ const ChefDashboard = () => {
                 sub: "View orders",
               },
               {
-                to: "/profile",
-                icon: ChefHat,
+                to: "#sub-requests",
+                icon: Star,
                 color: "bg-green-50",
                 iconColor: "text-green-500",
-                label: "My Profile",
-                sub: "Account settings",
+                label: "Sub Requests",
+                sub: subRequests?.length > 0 ? `${subRequests.length} pending` : "No requests",
               },
             ].map((action) => (
               <Link to={action.to} key={action.label}>
@@ -417,6 +457,60 @@ const ChefDashboard = () => {
               </Link>
             ))}
           </div>
+
+          {/* ── Subscription Requests (NEW) ── */}
+          {subRequests && subRequests.length > 0 && (
+            <div id="sub-requests" className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+              <h2 className="text-xl font-black mb-4 flex items-center gap-2">
+                <Badge className="bg-primary text-white">{subRequests.length}</Badge>
+                New Subscription Requests
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {subRequests.map((req: any) => (
+                  <Card key={req._id} className="border-2 border-primary/20 shadow-lg">
+                    <CardContent className="p-5">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                            {req.user?.firstName?.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-bold">{req.user?.firstName} {req.user?.lastName}</p>
+                            <p className="text-xs text-muted-foreground">{req.planName}</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-primary border-primary">Pending Review</Badge>
+                      </div>
+                      
+                      <div className="bg-muted/50 rounded-lg p-3 space-y-2 mb-4 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Address:</span>
+                          <span className="font-semibold">{req.deliveryAddress?.street}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Meal Time:</span>
+                          <span className="font-semibold capitalize">{req.preferences?.mealTime}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button className="flex-1 gradient-primary text-xs" 
+                          onClick={() => approveSub(req._id)}
+                          disabled={isApproving}>
+                          {isApproving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <CheckCircle className="h-3 w-3 mr-1" />}
+                          Approve Request
+                        </Button>
+                        <Button variant="outline" className="flex-1 text-xs text-red-600 hover:bg-red-50 border-red-100">
+                          <X className="h-3 w-3 mr-1" />
+                          Decline
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* ── My Menu Items ── */}

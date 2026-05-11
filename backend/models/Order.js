@@ -95,8 +95,8 @@ const orderSchema = new mongoose.Schema(
     referralCode: String,
     paymentMethod: {
       type: String,
-      enum: ['esewa', 'khalti', 'cod'],
-      default: 'cod',
+      enum: ["cod", "khalti", "esewa", "subscription"],
+      default: "cod",
     },
     paymentDetails: {
       transactionId: String, // General purpose

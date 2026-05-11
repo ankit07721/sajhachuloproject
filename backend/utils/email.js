@@ -266,9 +266,46 @@ const sendContactFormEmail = async (formData) => {
   }
 };
 
+const sendChefNewOrderEmail = async (chefEmail, order) => {
+  try {
+    const transporter = createTransporter();
+
+    const emailHTML = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+        <h2 style="color: #e67e22;">👨‍🍳 New Order Received!</h2>
+        <p>Hi Chef,</p>
+        <p>You have received a new order on Plateful. Please check your dashboard to accept it.</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px;">
+          <p><strong>Order Number:</strong> #${order.orderNumber}</p>
+          <p><strong>Customer:</strong> ${order.customerInfo.firstName} ${order.customerInfo.lastName}</p>
+          <p><strong>Delivery Address:</strong> ${order.customerInfo.address}</p>
+          <p><strong>Phone:</strong> ${order.customerInfo.phone}</p>
+        </div>
+        
+        <p>Please log in to your dashboard to manage this order.</p>
+        <hr>
+        <p style="font-size: 0.8em; color: #777;">Thank you for being part of Plateful!</p>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: `"Plateful Orders" <${process.env.EMAIL_USER}>`,
+      to: chefEmail,
+      subject: `🚨 NEW ORDER #${order.orderNumber} - Action Required`,
+      html: emailHTML,
+    };
+
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending chef notification email:", error);
+  }
+};
+
 module.exports = {
   sendOrderConfirmationEmail,
   sendOrderStatusUpdateEmail,
   sendPasswordResetEmail,
   sendContactFormEmail,
+  sendChefNewOrderEmail,
 };

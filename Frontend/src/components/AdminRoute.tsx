@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2 } from "lucide-react";
+import AdminLayout from "./AdminLayout";
 
 const AdminRoute = () => {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -14,7 +15,11 @@ const AdminRoute = () => {
   }
 
   if (isAuthenticated && user?.role === "admin") {
-    return <Outlet />;
+    return (
+      <AdminLayout>
+        <Outlet />
+      </AdminLayout>
+    );
   } else {
     console.warn("AdminRoute: Access denied. Redirecting to homepage.");
     return <Navigate to="/" replace/>;

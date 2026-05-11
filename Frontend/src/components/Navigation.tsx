@@ -133,21 +133,32 @@ const Navigation = () => {
               </DropdownMenuItem>
             )}
             
-            <DropdownMenuItem asChild>
-              <Link to="/profile" className="w-full">
-                Profile
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/orders" className="w-full">
-                My Orders
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to="/my-subscription" className="w-full">
-                My Subscription
-              </Link>
-            </DropdownMenuItem>
+            {user?.role === "customer" && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="w-full">
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/orders" className="w-full">
+                    My Orders
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/my-subscription" className="w-full">
+                    My Subscription
+                  </Link>
+                </DropdownMenuItem>
+              </>
+            )}
+            {user?.role === "admin" && (
+              <DropdownMenuItem asChild>
+                <Link to="/profile" className="w-full">
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={logout}

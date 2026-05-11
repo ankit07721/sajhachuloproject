@@ -111,8 +111,12 @@ const ManageOrders = () => {
     }[status] || "outline");
 
   return (
+<<<<<<< HEAD
     <div className="container mx-auto py-8">
       <DashboardBackButton />
+=======
+    <div className="space-y-6">
+>>>>>>> ad836321844bc46af50f6030a38c15b44fbbf685
       <Card>
         <CardHeader>
           <CardTitle>Manage Orders</CardTitle>

@@ -157,4 +157,20 @@ router.get('/admin/all', authenticateToken, authorizeRole('admin'), async (req, 
   }
 });
 
+// ── Availability Toggle (NEW) ─────────────────────────────────────────────────
+router.put('/availability', authenticateToken, authorizeRole('chef'), async (req, res) => {
+  try {
+    const { isAvailable } = req.body;
+    const chef = await User.findByIdAndUpdate(
+      req.user._id,
+      { 'chefProfile.isAvailable': isAvailable },
+      { new: true }
+    ).select('-password');
+    
+    res.json({ success: true, data: chef, message: `Status updated to ${isAvailable ? 'Online' : 'Offline'}` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

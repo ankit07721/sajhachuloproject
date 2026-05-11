@@ -11,6 +11,7 @@ const { authenticateToken, authorizeRole } = require("../middleware/auth");
 const {
   sendOrderConfirmationEmail,
   sendOrderStatusUpdateEmail,
+  sendChefNewOrderEmail,
 } = require("../utils/email");
 const LocationService = require("../services/locationService");
 const mongoose = require("mongoose");
@@ -39,9 +40,12 @@ const autoAssignChef = async (orderItems) => {
   for (const item of orderItems) {
     const menuItem = await MenuItem.findById(item.menuItem).populate(
       "createdBy",
-      "firstName lastName role",
+      "firstName lastName role chefProfile",
     );
     if (menuItem?.createdBy && menuItem.createdBy.role === "chef") {
+      if (menuItem.createdBy.chefProfile?.isAvailable === false) {
+        throw new Error(`Chef ${menuItem.createdBy.firstName} is currently not accepting orders.`);
+      }
       const chefId = menuItem.createdBy._id.toString();
       if (!chefMap[chefId]) {
         chefMap[chefId] = {
@@ -241,22 +245,34 @@ router.post("/", authenticateToken, validateOrder, async (req, res) => {
       console.error("Notification creation failed:", err);
     }
 
-    // Clear cart (Only if payment method is COD. For online payments, we clear after verification)
-    // REMOVED: Cart is no longer cleared here for COD to meet user requirement
-    /*
-    if (paymentMethod === "cod") {
+      // Clear cart for COD orders
       const userCart = await Cart.findOne({ user: customer._id });
       if (userCart) {
         userCart.items = [];
         await userCart.save();
       }
-    }
-    */
 
+<<<<<<< HEAD
     // Send confirmation email
     try {
       await sendOrderConfirmationEmail(customer.email, savedOrder);
     } catch (e) { }
+=======
+      // Send confirmation emails
+      try {
+        await sendOrderConfirmationEmail(customer.email, savedOrder);
+        
+        // Notify the Chef as well
+        if (savedOrder.assignedChef) {
+          const chef = await User.findById(savedOrder.assignedChef);
+          if (chef && chef.email) {
+            await sendChefNewOrderEmail(chef.email, savedOrder);
+          }
+        }
+      } catch (e) {
+        console.error("Email notification failed:", e);
+      }
+>>>>>>> ad836321844bc46af50f6030a38c15b44fbbf685
 
     // Populate chef name for response
     await savedOrder.populate("assignedChef", "firstName lastName");
@@ -332,8 +348,8 @@ router.patch(
   authorizeRole("chef"),
   async (req, res) => {
     try {
-      const { status } = req.body; // 'preparing' or 'ready'
-      const validChefStatuses = ["preparing", "ready"];
+      const { status } = req.body; // 'confirmed', 'preparing', 'ready', or 'cancelled'
+      const validChefStatuses = ["confirmed", "preparing", "ready", "cancelled"];
 
       if (!validChefStatuses.includes(status)) {
         return res.status(400).json({
@@ -364,6 +380,33 @@ router.patch(
           .json({ success: false, message: "You have no items in this order" });
 
       await order.updateStatus(status);
+
+      // Notify customer via in-app notification
+      try {
+        await Notification.create({
+          recipient: order.customer,
+          type: "order_update",
+          title: `Order ${status.toUpperCase()}`,
+          message: `Your order #${order.orderNumber} has been ${status}.`,
+          link: `/orders`,
+        });
+      } catch (err) {
+        console.error("Failed to create customer notification:", err);
+      }
+
+      // If a PAID order is CANCELLED, send urgent notification to Admin for refund
+      if (status === "cancelled" && order.paymentStatus === "paid") {
+        const admins = await User.find({ role: "admin" });
+        for (const admin of admins) {
+          await Notification.create({
+            recipient: admin._id,
+            type: "refund_required",
+            title: "🚨 REFUND REQUIRED",
+            message: `Paid Order ${order.orderNumber} was cancelled. Please process a refund of NRs ${order.pricing.total}.`,
+            link: `/admin/manage-orders`,
+          });
+        }
+      }
 
       // Notify customer via email
       const customer = await User.findById(order.customer);
@@ -466,6 +509,20 @@ router.patch(
           .json({ success: false, message: "Order not found" });
 
       await order.updateStatus(status, statusMessage);
+
+      // If a PAID order is CANCELLED, alert other admins or keep a record for refund
+      if (status === "cancelled" && order.paymentStatus === "paid") {
+        const admins = await User.find({ role: "admin" });
+        for (const admin of admins) {
+          await Notification.create({
+            recipient: admin._id,
+            type: "refund_required",
+            title: "🚨 REFUND REQUIRED",
+            message: `Paid Order ${order.orderNumber} was cancelled. Refund NRs ${order.pricing.total} is pending.`,
+            link: `/admin/manage-orders`,
+          });
+        }
+      }
 
       const customer = await User.findById(order.customer);
       if (customer?.email) {

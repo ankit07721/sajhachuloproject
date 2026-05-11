@@ -66,6 +66,7 @@ const SubscriptionCard = ({ sub, onView }: any) => (
 const ManageSubscriptions = () => {
   const [activeTab, setActiveTab] = useState("active");
   const [selectedSub, setSelectedSub] = useState<any>(null);
+  const [targetChefId, setTargetChefId] = useState("");
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -74,6 +75,27 @@ const ManageSubscriptions = () => {
       const res = await api.get(`/subscriptions/admin/all?status=${activeTab}`);
       return res.data.data;
     },
+  });
+
+  // Fetch all chefs for reassignment
+  const { data: chefs } = useQuery({
+    queryKey: ["adminAllChefs"],
+    queryFn: async () => {
+      const res = await api.get("/chefs");
+      return res.data.data;
+    },
+  });
+
+  const reassignMutation = useMutation({
+    mutationFn: () => api.put(`/subscriptions/admin/${selectedSub?._id}/reassign-chef`, { chefId: targetChefId }),
+    onSuccess: () => {
+      toast.success("Subscription transferred to new chef! 👩‍🍳");
+      queryClient.invalidateQueries({ queryKey: ["adminSubscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["adminSubscriptionsAll"] });
+      setSelectedSub(null);
+      setTargetChefId("");
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || "Failed to transfer subscription."),
   });
 
   // Stats query
@@ -163,6 +185,40 @@ const ManageSubscriptions = () => {
           </DialogHeader>
           {selectedSub && (
             <div className="space-y-3 text-sm">
+              <div className="bg-muted/40 rounded-xl p-4 space-y-2 border border-slate-200">
+                <p className="font-bold text-slate-900">Current Assigned Chef</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-primary font-bold">👩‍🍳 {selectedSub.assignedChefName || "Not Assigned"}</p>
+                </div>
+                
+                {/* REASSIGN SECTION */}
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Emergency Reassign</p>
+                  <div className="flex gap-2">
+                    <select 
+                      className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
+                      onChange={(e) => setTargetChefId(e.target.value)}
+                      value={targetChefId}
+                    >
+                      <option value="">Select New Chef...</option>
+                      {chefs?.map((chef: any) => (
+                        <option key={chef._id} value={chef._id}>
+                          {chef.firstName} {chef.lastName}
+                        </option>
+                      ))}
+                    </select>
+                    <Button 
+                      size="sm" 
+                      className="gradient-primary"
+                      disabled={!targetChefId || reassignMutation.isPending}
+                      onClick={() => reassignMutation.mutate()}
+                    >
+                      {reassignMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Transfer"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-muted/40 rounded-xl p-4 space-y-2">
                 <p><span className="font-bold">Customer:</span> {selectedSub.user?.firstName} {selectedSub.user?.lastName}</p>
                 <p><span className="font-bold">Email:</span> {selectedSub.user?.email}</p>
