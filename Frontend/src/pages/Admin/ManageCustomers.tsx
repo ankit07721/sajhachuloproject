@@ -80,7 +80,7 @@ const ManageCustomers = () => {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Manage Customers</CardTitle>

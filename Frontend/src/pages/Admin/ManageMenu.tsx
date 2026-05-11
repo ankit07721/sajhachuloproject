@@ -76,8 +76,7 @@ const ManageMenu = () => {
   const totalPages = data?.data?.totalPages || 1;
 
   return (
-    <>
-      <div className="container mx-auto py-8">
+    <div className="space-y-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -191,8 +190,6 @@ const ManageMenu = () => {
             </PaginationContent>
           </Pagination>
         )}
-      </div>
-
       <AlertDialog
         open={!!itemToDelete}
         onOpenChange={() => setItemToDelete(null)}
@@ -220,7 +217,7 @@ const ManageMenu = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };
 

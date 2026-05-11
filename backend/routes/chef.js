@@ -17,6 +17,7 @@ const formatChef = (user) => ({
   totalOrders: user.chefProfile?.totalOrders || 0,
   badges: user.chefProfile?.badges || [],
   experience: user.chefProfile?.experience || "",
+  isAvailable: user.chefProfile?.isAvailable ?? true,
   isActive: user.isActive,
   applicationStatus: user.chefProfile?.applicationStatus,
   kitchenLat: user.location?.latitude  || null,

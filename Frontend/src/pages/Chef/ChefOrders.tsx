@@ -1,6 +1,6 @@
 // Frontend/src/pages/Chef/ChefOrders.tsx
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, ChefHat, Clock, Phone, MapPin, CheckCircle, Flame } from "lucide-react";
+import { Loader2, ChefHat, Clock, Phone, MapPin, CheckCircle, Flame, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -102,20 +102,35 @@ const ChefOrders = () => {
 
         {/* Action buttons */}
         <div className="flex gap-2">
+          {order.status === "pending" && (
+            <>
+              <Button
+                size="sm"
+                className="flex-1 gradient-primary"
+                onClick={() => statusMutation.mutate({ orderNumber: order.orderNumber, status: "confirmed" })}
+                disabled={statusMutation.isPending}
+              >
+                <CheckCircle className="h-3 w-3 mr-1" /> Accept
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                onClick={() => {
+                  if(window.confirm("Are you sure you want to reject this order?")) {
+                    statusMutation.mutate({ orderNumber: order.orderNumber, status: "cancelled" });
+                  }
+                }}
+                disabled={statusMutation.isPending}
+              >
+                <X className="h-3 w-3 mr-1" /> Reject
+              </Button>
+            </>
+          )}
           {order.status === "confirmed" && (
             <Button
               size="sm"
               className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
-              onClick={() => statusMutation.mutate({ orderNumber: order.orderNumber, status: "preparing" })}
-              disabled={statusMutation.isPending}
-            >
-              <Flame className="h-3 w-3 mr-1" /> Start Cooking
-            </Button>
-          )}
-          {order.status === "pending" && (
-            <Button
-              size="sm"
-              className="flex-1 gradient-primary"
               onClick={() => statusMutation.mutate({ orderNumber: order.orderNumber, status: "preparing" })}
               disabled={statusMutation.isPending}
             >

@@ -125,7 +125,7 @@ function SubscribeModal({ plan, onClose, onSuccess }: {
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [deliveryCoords, setDeliveryCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [prefs, setPrefs] = useState({
     mealType: "both" as "veg" | "non-veg" | "both",
@@ -134,10 +134,55 @@ function SubscribeModal({ plan, onClose, onSuccess }: {
     specialRequests: "",
   });
   const [addr, setAddr] = useState({ street: "", city: "", landmark: "", phone: "" });
+  const [assignedChef, setAssignedChef] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cod");
+
+  const queryClient = useQueryClient();
+
+  // Fetch all chefs for selection
+  const { data: chefs } = useQuery({
+    queryKey: ["allChefs"],
+    queryFn: async () => {
+      const res = await api.get("/chefs");
+      return res.data.data;
+    },
+  });
 
   const { mutate: subscribe, isPending } = useMutation({
-    mutationFn: (payload: SubscribePayload) => api.post("/subscriptions", payload),
-    onSuccess: () => {
+    mutationFn: (payload: any) => api.post("/subscriptions", payload),
+    onSuccess: async (response) => {
+      const sub = response.data.data;
+
+      if (paymentMethod === "esewa" || paymentMethod === "khalti") {
+        try {
+          const { data: paymentInit } = await api.post("/payment/initiate-subscription", {
+            subscriptionId: sub._id,
+            method: paymentMethod,
+          });
+
+          if (paymentMethod === "esewa" && paymentInit.esewaConfig) {
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = paymentInit.paymentActionUrl;
+            Object.entries(paymentInit.esewaConfig).forEach(([key, value]) => {
+              const input = document.createElement("input");
+              input.type = "hidden";
+              input.name = key;
+              input.value = String(value);
+              form.appendChild(input);
+            });
+            document.body.appendChild(form);
+            form.submit();
+            return;
+          } else if (paymentMethod === "khalti" && paymentInit.paymentUrl) {
+            window.location.href = paymentInit.paymentUrl;
+            return;
+          }
+        } catch (err) {
+          toast.error("Subscription created, but payment failed. Please pay from your dashboard.");
+        }
+      }
+
       toast.success("Subscription activated! Enjoy your meals!");
       onSuccess();
     },
@@ -150,7 +195,17 @@ function SubscribeModal({ plan, onClose, onSuccess }: {
     if (!addr.street || !addr.city || !addr.phone) {
       return toast.error("Please fill in all delivery details.");
     }
-    subscribe({ planId: plan._id, preferences: prefs, deliveryAddress: addr, paymentMethod: "cod", deliveryCoords });
+    if (!assignedChef) {
+      return toast.error("Please select a chef for your subscription.");
+    }
+    subscribe({ 
+      planId: plan._id, 
+      preferences: prefs, 
+      deliveryAddress: addr, 
+      paymentMethod, 
+      assignedChef,
+      deliveryCoords 
+    });
   };
 
   const totalPrice = plan.durationDays >= 30
@@ -169,20 +224,21 @@ function SubscribeModal({ plan, onClose, onSuccess }: {
             <button onClick={onClose} className="text-white/70 hover:text-white text-2xl leading-none">✕</button>
           </div>
           <div className="flex gap-2 mt-4">
-            {[1, 2, 3].map(s => (
+            {[1, 2, 3, 4].map(s => (
               <div key={s} className={`h-1.5 flex-1 rounded-full transition-all ${step >= s ? "bg-white" : "bg-white/30"}`} />
             ))}
           </div>
           <div className="flex justify-between text-xs opacity-75 mt-1">
-            <span>Preferences</span><span>Delivery</span><span>Confirm</span>
+            <span>Prefs</span><span>Delivery</span><span>Chef</span><span>Confirm</span>
           </div>
         </div>
 
         <div className="p-6">
-          {/* Step 1 */}
+          {/* Step 1: Preferences */}
           {step === 1 && (
             <div className="space-y-5 animate-fade-in">
               <h3 className="font-bold text-lg">Your Food Preferences</h3>
+              {/* ... existing fields ... */}
               <div>
                 <label className="text-sm font-semibold text-muted-foreground mb-2 block">Meal Type</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -227,7 +283,7 @@ function SubscribeModal({ plan, onClose, onSuccess }: {
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* Step 2: Address */}
           {step === 2 && (
             <div className="space-y-4 animate-fade-in">
               <h3 className="font-bold text-lg">Delivery Address</h3>
@@ -247,15 +303,9 @@ function SubscribeModal({ plan, onClose, onSuccess }: {
                 }}>
                 📍 Detect My Location (for chef assignment)
               </Button>
-              {deliveryCoords && (
-                <p className="text-xs text-green-600 font-medium">
-                  ✅ Location set ({deliveryCoords.latitude.toFixed(4)}, {deliveryCoords.longitude.toFixed(4)})
-                </p>
-              )}
               {[
                 { key: "street",   label: "Street Address", placeholder: "e.g. Traffic Chowk, Butwal" },
                 { key: "city",     label: "City",           placeholder: "e.g. Butwal" },
-                { key: "landmark", label: "Landmark (optional)", placeholder: "e.g. Near hospital" },
                 { key: "phone",    label: "Contact Phone",  placeholder: "e.g. 98XXXXXXXX" },
               ].map(field => (
                 <div key={field.key}>
@@ -273,18 +323,44 @@ function SubscribeModal({ plan, onClose, onSuccess }: {
             </div>
           )}
 
-          {/* Step 3 */}
+          {/* Step 3: Chef Selection */}
           {step === 3 && (
+            <div className="space-y-4 animate-fade-in">
+              <h3 className="font-bold text-lg">Choose Your Chef</h3>
+              <p className="text-sm text-muted-foreground">Select a home cook to prepare your meals for this plan.</p>
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                {chefs?.map((chef: any) => (
+                  <div key={chef._id} 
+                    onClick={() => setAssignedChef(chef._id)}
+                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${assignedChef === chef._id ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}>
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {chef.firstName.charAt(0)}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-sm">{chef.firstName} {chef.lastName}</p>
+                      <p className="text-xs text-muted-foreground">Home Cook • {chef.location?.city || "Local"}</p>
+                    </div>
+                    {assignedChef === chef._id && <CheckCircle className="h-5 w-5 text-primary" />}
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>← Back</Button>
+                <Button className="flex-1 gradient-primary" disabled={!assignedChef} onClick={() => setStep(4)}>Continue →</Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Confirm */}
+          {step === 4 && (
             <div className="space-y-4 animate-fade-in">
               <h3 className="font-bold text-lg">Confirm Subscription</h3>
               <div className="bg-muted/50 rounded-xl p-4 space-y-3">
                 {[
                   { label: "Plan",      val: plan.name },
-                  { label: "Duration",  val: `${plan.durationDays} days` },
+                  { label: "Chef",      val: chefs?.find((c:any) => c._id === assignedChef)?.firstName + " " + chefs?.find((c:any) => c._id === assignedChef)?.lastName },
                   { label: "Meal Type", val: prefs.mealType },
-                  { label: "Meal Time", val: prefs.mealTime },
-                  { label: "Spice",     val: prefs.spiceLevel },
-                  { label: "Delivery",  val: `${addr.street}, ${addr.city}` },
+                  { label: "Delivery",  val: `${addr.street}` },
                 ].map(row => (
                   <div key={row.label} className="flex justify-between text-sm">
                     <span className="text-muted-foreground">{row.label}</span>
@@ -296,18 +372,28 @@ function SubscribeModal({ plan, onClose, onSuccess }: {
                   <span className="font-bold">Total</span>
                   <span className="font-black text-primary text-lg">Rs. {totalPrice.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Payment</span>
-                  <span className="font-bold text-green-600">Cash on Delivery</span>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-muted-foreground mb-2 block">Payment Method</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "esewa", img: "https://img.favpng.com/7/14/6/esewa-fonepay-pvt-ltd-logo-portable-network-graphics-image-brand-png-favpng-aLLyxWtspEZQckmv19jDj2TWC.jpg" },
+                    { id: "khalti", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShwWa20Ba7lNTbbVITqfiPY_662rA1zN2cSA&s" },
+                    { id: "cod", label: "COD" },
+                  ].map(opt => (
+                    <button key={opt.id} onClick={() => setPaymentMethod(opt.id)}
+                      className={`flex items-center justify-center p-2 rounded-xl border-2 transition-all h-12 ${paymentMethod === opt.id ? "border-primary bg-primary/5" : "border-border"}`}>
+                      {opt.img ? <img src={opt.img} className="h-6 object-contain" /> : <span className="font-bold text-sm">COD</span>}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-sm text-orange-700">
-                📦 Your first delivery starts <strong>tomorrow</strong>. Our team will contact you to confirm!
-              </div>
-              <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>← Back</Button>
+
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setStep(3)}>← Back</Button>
                 <Button className="flex-1 gradient-primary" size="lg" onClick={handleSubmit} disabled={isPending}>
-                  {isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Activating...</> : "Confirm & Subscribe"}
+                  {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Confirm & Subscribe"}
                 </Button>
               </div>
             </div>
