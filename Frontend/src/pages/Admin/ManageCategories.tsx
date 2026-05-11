@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import api from "@/lib/api";
 import { Loader2, PlusCircle, Trash2 } from "lucide-react";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 interface MenuCategory {
   _id: string;
@@ -127,6 +128,7 @@ const ManageCategories = () => {
   return (
     <>
       <div className="container py-8 max-w-4xl space-y-8">
+        <DashboardBackButton />
         {/* Section to add a new category */}
         <Card>
           <CardHeader>

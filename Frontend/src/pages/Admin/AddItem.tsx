@@ -25,6 +25,7 @@ import { TagInput } from "@/components/ui/tag-input";
 import { Loader2 } from "lucide-react";
 import api from "@/lib/api";
 import { MenuItem } from "@/types";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 interface MenuCategory {
   _id: string;
@@ -117,6 +118,7 @@ const AddItem = () => {
 
   return (
     <div className="container mx-auto py-8 max-w-2xl">
+      <DashboardBackButton />
       <Card>
         <CardHeader>
           <CardTitle>Add New Menu Item</CardTitle>

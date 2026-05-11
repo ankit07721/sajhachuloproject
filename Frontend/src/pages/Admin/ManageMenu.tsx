@@ -45,6 +45,7 @@ import {
 import api from "@/lib/api";
 import { MenuItem, ApiResponse } from "@/types"; // Use the existing ApiResponse type
 import { Skeleton } from "@/components/ui/skeleton";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 const ManageMenu = () => {
   const [page, setPage] = useState(1);
@@ -78,6 +79,7 @@ const ManageMenu = () => {
   return (
     <>
       <div className="container mx-auto py-8">
+        <DashboardBackButton />
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>

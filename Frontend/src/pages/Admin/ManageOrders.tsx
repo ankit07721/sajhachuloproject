@@ -39,6 +39,7 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from "@/components/ui/pagination";
+import DashboardBackButton from "@/components/DashboardBackButton";
 import api from "@/lib/api";
 
 interface AdminOrder {
@@ -111,6 +112,7 @@ const ManageOrders = () => {
 
   return (
     <div className="container mx-auto py-8">
+      <DashboardBackButton />
       <Card>
         <CardHeader>
           <CardTitle>Manage Orders</CardTitle>

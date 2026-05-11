@@ -25,7 +25,9 @@ if (missingEnv.length > 0) {
 const app = express();
 
 // Middleware
-app.use(helmet()); // Security headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+})); // Security headers with cross-origin allowed for images
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 } else {

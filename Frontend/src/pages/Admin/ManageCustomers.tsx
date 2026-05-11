@@ -33,6 +33,7 @@ import api from "@/lib/api";
 import { User } from "@/types";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 interface CustomersApiResponse {
   success: boolean;
@@ -81,6 +82,7 @@ const ManageCustomers = () => {
 
   return (
     <div className="container mx-auto py-8">
+      <DashboardBackButton />
       <Card>
         <CardHeader>
           <CardTitle>Manage Customers</CardTitle>

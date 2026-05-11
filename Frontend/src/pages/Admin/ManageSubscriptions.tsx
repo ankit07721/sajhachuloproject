@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { format } from "date-fns";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 const statusColor: Record<string, string> = {
   active:    "bg-green-100 text-green-700 border-green-200",
@@ -94,6 +95,7 @@ const ManageSubscriptions = () => {
 
   return (
     <div className="container mx-auto py-8 max-w-5xl">
+      <DashboardBackButton />
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { format } from "date-fns";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 const fetchApplications = async (status: string) => {
   const { data } = await api.get(`/chef/admin/applications?status=${status}`);
@@ -170,6 +171,7 @@ const ManageChefApplications = () => {
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
+      <DashboardBackButton />
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <ChefHat className="h-5 w-5 text-primary" />

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TagInput } from "@/components/ui/tag-input";
 import api from "@/lib/api";
+import DashboardBackButton from "@/components/DashboardBackButton";
 
 const ChefAddItem = () => {
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ const ChefAddItem = () => {
       const response = await api.post("/upload/image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      console.log("Image upload success:", response.data.data.url);
       setForm(prev => ({ ...prev, image: response.data.data.url }));
       toast.success("Image uploaded! ✅");
     } catch (err: any) {
@@ -87,11 +89,7 @@ const ChefAddItem = () => {
 
   return (
     <div className="container mx-auto py-8 max-w-2xl">
-      <div className="mb-6">
-        <Link to="/chef/manage-menu">
-          <Button variant="outline" size="sm">← Back to My Menu</Button>
-        </Link>
-      </div>
+      <DashboardBackButton />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
@@ -128,7 +126,7 @@ const ChefAddItem = () => {
               <Label>Dish Photo *</Label>
               {form.image && (
                 <div className="relative w-full h-48 rounded-xl overflow-hidden border">
-                  <img src={form.image} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={form.image} alt="Preview" className="w-full h-full object-cover" crossOrigin="anonymous" />
                   <button type="button" onClick={() => setForm(p => ({ ...p, image: "" }))}
                     className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1">
                     <X className="h-4 w-4" />
