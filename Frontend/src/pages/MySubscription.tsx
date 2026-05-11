@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Loader2, CheckCircle, PauseCircle, XCircle, PlayCircle, ChefHat } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle,
+  PauseCircle,
+  XCircle,
+  PlayCircle,
+  ChefHat,
+  Clock,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +21,13 @@ interface Subscription {
   _id: string;
   planName: string;
   planSlug: string;
-  status: "pending_approval" | "approved" | "active" | "paused" | "cancelled" | "expired";
+  status:
+    | "pending_approval"
+    | "approved"
+    | "active"
+    | "paused"
+    | "cancelled"
+    | "expired";
   startDate: string;
   endDate: string;
   totalAmount: number;
@@ -31,9 +45,6 @@ interface Subscription {
     phone: string;
   };
 
-  
-
-
   plan: {
     name: string;
     features: string[];
@@ -43,7 +54,7 @@ interface Subscription {
   assignedChef?: {
     firstName: string;
     lastName: string;
-    chefProfile?: { specialty: string; rating: number; };
+    chefProfile?: { specialty: string; rating: number };
   };
   createdAt: string;
 }
@@ -54,12 +65,36 @@ const fetchMySub = async (): Promise<Subscription | null> => {
 };
 
 const statusConfig = {
-  pending_approval: { color: "bg-blue-100 text-blue-700 border-blue-200", icon: <Clock className="h-4 w-4" />, label: "Waiting for Chef" },
-  approved:         { color: "bg-purple-100 text-purple-700 border-purple-200", icon: <CheckCircle className="h-4 w-4" />, label: "Approved" },
-  active:           { color: "bg-green-100 text-green-700 border-green-200",    icon: <CheckCircle className="h-4 w-4" />,  label: "Active" },
-  paused:           { color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: <PauseCircle className="h-4 w-4" />, label: "Paused" },
-  cancelled:        { color: "bg-red-100 text-red-700 border-red-200",          icon: <XCircle className="h-4 w-4" />,     label: "Cancelled" },
-  expired:          { color: "bg-gray-100 text-gray-600 border-gray-200",       icon: <XCircle className="h-4 w-4" />,     label: "Expired" },
+  pending_approval: {
+    color: "bg-blue-100 text-blue-700 border-blue-200",
+    icon: <Clock className="h-4 w-4" />,
+    label: "Waiting for Chef",
+  },
+  approved: {
+    color: "bg-purple-100 text-purple-700 border-purple-200",
+    icon: <CheckCircle className="h-4 w-4" />,
+    label: "Approved",
+  },
+  active: {
+    color: "bg-green-100 text-green-700 border-green-200",
+    icon: <CheckCircle className="h-4 w-4" />,
+    label: "Active",
+  },
+  paused: {
+    color: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    icon: <PauseCircle className="h-4 w-4" />,
+    label: "Paused",
+  },
+  cancelled: {
+    color: "bg-red-100 text-red-700 border-red-200",
+    icon: <XCircle className="h-4 w-4" />,
+    label: "Cancelled",
+  },
+  expired: {
+    color: "bg-gray-100 text-gray-600 border-gray-200",
+    icon: <XCircle className="h-4 w-4" />,
+    label: "Expired",
+  },
 };
 
 const MySubscription = () => {
@@ -73,36 +108,54 @@ const MySubscription = () => {
 
   const pauseMutation = useMutation({
     mutationFn: () => api.put(`/subscriptions/${sub?._id}/pause`),
-    onSuccess: () => { toast.success("Subscription paused."); queryClient.invalidateQueries({ queryKey: ["mySubscription"] }); },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to pause."),
+    onSuccess: () => {
+      toast.success("Subscription paused.");
+      queryClient.invalidateQueries({ queryKey: ["mySubscription"] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message ?? "Failed to pause."),
   });
 
   const resumeMutation = useMutation({
     mutationFn: () => api.put(`/subscriptions/${sub?._id}/resume`),
-    onSuccess: () => { toast.success("Subscription resumed! 🎉"); queryClient.invalidateQueries({ queryKey: ["mySubscription"] }); },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to resume."),
+    onSuccess: () => {
+      toast.success("Subscription resumed! 🎉");
+      queryClient.invalidateQueries({ queryKey: ["mySubscription"] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message ?? "Failed to resume."),
   });
 
   const cancelMutation = useMutation({
-    mutationFn: () => api.put(`/subscriptions/${sub?._id}/cancel`, { reason: "User requested cancellation" }),
-    onSuccess: () => { toast.success("Subscription cancelled."); queryClient.invalidateQueries({ queryKey: ["mySubscription"] }); },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to cancel."),
+    mutationFn: () =>
+      api.put(`/subscriptions/${sub?._id}/cancel`, {
+        reason: "User requested cancellation",
+      }),
+    onSuccess: () => {
+      toast.success("Subscription cancelled.");
+      queryClient.invalidateQueries({ queryKey: ["mySubscription"] });
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message ?? "Failed to cancel."),
   });
 
   const claimMutation = useMutation({
     mutationFn: () => api.post("/subscriptions/claim-meal"),
-    onSuccess: () => { 
-      toast.success("Meal claimed successfully! Your chef has been notified. ✅"); 
+    onSuccess: () => {
+      toast.success(
+        "Meal claimed successfully! Your chef has been notified. ✅",
+      );
       navigate("/orders"); // Redirect to orders to see the status
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to claim meal."),
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message ?? "Failed to claim meal."),
   });
 
   const handlePayment = async (method: "esewa" | "khalti") => {
     try {
       const { data } = await api.post("/payment/initiate-subscription", {
         subscriptionId: sub?._id,
-        method
+        method,
       });
 
       if (method === "esewa" && data.esewaConfig) {
@@ -111,7 +164,9 @@ const MySubscription = () => {
         form.action = data.paymentActionUrl;
         Object.entries(data.esewaConfig).forEach(([k, v]) => {
           const input = document.createElement("input");
-          input.type = "hidden"; input.name = k; input.value = String(v);
+          input.type = "hidden";
+          input.name = k;
+          input.value = String(v);
           form.appendChild(input);
         });
         document.body.appendChild(form);
@@ -140,11 +195,18 @@ const MySubscription = () => {
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
             <ChefHat className="h-10 w-10 text-primary" />
           </div>
-          <h1 className="text-3xl font-black text-foreground mb-3">No Active Subscription</h1>
+          <h1 className="text-3xl font-black text-foreground mb-3">
+            No Active Subscription
+          </h1>
           <p className="text-muted-foreground mb-8">
-            You don't have an active meal plan yet. Subscribe to enjoy fresh home-cooked meals every day!
+            You don't have an active meal plan yet. Subscribe to enjoy fresh
+            home-cooked meals every day!
           </p>
-          <Button className="gradient-primary" size="lg" onClick={() => navigate("/meal-plans")}>
+          <Button
+            className="gradient-primary"
+            size="lg"
+            onClick={() => navigate("/meal-plans")}
+          >
             Browse Meal Plans →
           </Button>
         </div>
@@ -161,15 +223,21 @@ const MySubscription = () => {
   return (
     <div className="min-h-screen bg-background py-10 animate-fade-in">
       <div className="container mx-auto px-4 max-w-3xl">
-
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-black text-foreground">My Subscription</h1>
-            <p className="text-muted-foreground mt-1">Manage your active meal plan</p>
+            <h1 className="text-3xl font-black text-foreground">
+              My Subscription
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your active meal plan
+            </p>
           </div>
-          <Badge className={`${sc.color} flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold border`}>
-            {sc.icon}{sc.label}
+          <Badge
+            className={`${sc.color} flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold border`}
+          >
+            {sc.icon}
+            {sc.label}
           </Badge>
         </div>
 
@@ -182,24 +250,33 @@ const MySubscription = () => {
                   <span className="text-3xl">🎉</span>
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-purple-900">Great News! Your Chef is Ready.</h3>
+                  <h3 className="text-xl font-black text-purple-900">
+                    Great News! Your Chef is Ready.
+                  </h3>
                   <p className="text-sm text-purple-700 max-w-md mx-auto">
-                    Chef {sub.assignedChefName} has approved your subscription request. 
-                    Please complete the payment below to activate your 30-day meal plan.
+                    Chef {sub.assignedChefName} has approved your subscription
+                    request. Please complete the payment below to activate your
+                    30-day meal plan.
                   </p>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                  <Button className="bg-[#602D7E] hover:bg-[#4d2465] text-white w-full sm:w-48 h-12 font-bold"
-                    onClick={() => handlePayment("khalti")}>
+                  <Button
+                    className="bg-[#602D7E] hover:bg-[#4d2465] text-white w-full sm:w-48 h-12 font-bold"
+                    onClick={() => handlePayment("khalti")}
+                  >
                     Pay with Khalti
                   </Button>
-                  <Button className="bg-[#41a124] hover:bg-[#34811d] text-white w-full sm:w-48 h-12 font-bold"
-                    onClick={() => handlePayment("esewa")}>
+                  <Button
+                    className="bg-[#41a124] hover:bg-[#34811d] text-white w-full sm:w-48 h-12 font-bold"
+                    onClick={() => handlePayment("esewa")}
+                  >
                     Pay with eSewa
                   </Button>
                 </div>
-                <p className="text-[10px] text-purple-400 uppercase tracking-widest font-bold">Secure Payment via Fonepay / Khalti SDK</p>
+                <p className="text-[10px] text-purple-400 uppercase tracking-widest font-bold">
+                  Secure Payment via Fonepay / Khalti SDK
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -211,8 +288,13 @@ const MySubscription = () => {
             <CardContent className="p-6 flex items-center gap-4">
               <Loader2 className="h-6 w-6 text-blue-500 animate-spin" />
               <div>
-                <h3 className="font-bold text-blue-900">Waiting for Chef Approval</h3>
-                <p className="text-sm text-blue-700">Chef {sub.assignedChefName} is reviewing your request. We'll notify you once they approve!</p>
+                <h3 className="font-bold text-blue-900">
+                  Waiting for Chef Approval
+                </h3>
+                <p className="text-sm text-blue-700">
+                  Chef {sub.assignedChefName} is reviewing your request. We'll
+                  notify you once they approve!
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -228,11 +310,15 @@ const MySubscription = () => {
                     <CheckCircle className="h-6 w-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-foreground">Ready for your meal?</h3>
-                    <p className="text-sm text-muted-foreground">Click below to claim your daily subscription meal.</p>
+                    <h3 className="text-lg font-black text-foreground">
+                      Ready for your meal?
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Click below to claim your daily subscription meal.
+                    </p>
                   </div>
                 </div>
-                <Button 
+                <Button
                   className="gradient-primary w-full md:w-auto h-12 px-8 font-bold"
                   onClick={() => claimMutation.mutate()}
                   disabled={claimMutation.isPending}
@@ -257,12 +343,18 @@ const MySubscription = () => {
             <div className="flex items-start justify-between flex-wrap gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Current Plan</p>
-                <h2 className="text-2xl font-black text-foreground mt-0.5">{sub.planName}</h2>
-                <p className="text-primary font-bold text-lg mt-1">Rs. {sub.totalAmount.toLocaleString()} total</p>
+                <h2 className="text-2xl font-black text-foreground mt-0.5">
+                  {sub.planName}
+                </h2>
+                <p className="text-primary font-bold text-lg mt-1">
+                  Rs. {sub.totalAmount.toLocaleString()} total
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Payment</p>
-                <p className={`text-sm font-bold mt-0.5 ${sub.paymentStatus === "paid" ? "text-green-600" : "text-yellow-600"}`}>
+                <p
+                  className={`text-sm font-bold mt-0.5 ${sub.paymentStatus === "paid" ? "text-green-600" : "text-yellow-600"}`}
+                >
                   {sub.paymentStatus === "paid" ? "✅ Paid" : "⏳ Pending"}
                 </p>
               </div>
@@ -274,14 +366,19 @@ const MySubscription = () => {
             <div className="mb-5">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-muted-foreground">Plan Progress</span>
-                <span className="font-bold text-primary">{Math.max(0, daysLeft)} days left</span>
+                <span className="font-bold text-primary">
+                  {Math.max(0, daysLeft)} days left
+                </span>
               </div>
               <div className="h-3 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${progressPct}%`,
-                    background: daysLeft <= 2 ? "#ef4444" : "linear-gradient(90deg,#f97316,#ea580c)",
+                    background:
+                      daysLeft <= 2
+                        ? "#ef4444"
+                        : "linear-gradient(90deg,#f97316,#ea580c)",
                   }}
                 />
               </div>
@@ -294,9 +391,15 @@ const MySubscription = () => {
             {/* Dates */}
             <div className="grid grid-cols-2 gap-4">
               {[
-                { label: "Start Date", val: format(new Date(sub.startDate), "PPP") },
-                { label: "End Date",   val: format(new Date(sub.endDate), "PPP") },
-              ].map(item => (
+                {
+                  label: "Start Date",
+                  val: format(new Date(sub.startDate), "PPP"),
+                },
+                {
+                  label: "End Date",
+                  val: format(new Date(sub.endDate), "PPP"),
+                },
+              ].map((item) => (
                 <div key={item.label} className="bg-muted/40 rounded-xl p-3">
                   <p className="text-xs text-muted-foreground">{item.label}</p>
                   <p className="font-bold text-sm mt-0.5">{item.val}</p>
@@ -308,27 +411,35 @@ const MySubscription = () => {
 
         {/* Two-column: Preferences + Delivery */}
         {sub.assignedChefName && (
-  <Card className="mb-6 border-orange-200 bg-orange-50">
-    <CardContent className="flex items-center gap-4 p-5">
-      <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-        <ChefHat className="h-6 w-6 text-orange-600" />
-      </div>
-      <div>
-        <p className="text-xs text-orange-600 font-semibold uppercase tracking-wide">Your Assigned Chef</p>
-        <p className="text-lg font-black text-orange-800">{sub.assignedChefName} 👩‍🍳</p>
-        {sub.assignedChef?.chefProfile?.specialty && (
-          <p className="text-sm text-orange-600">{sub.assignedChef.chefProfile.specialty}</p>
-        )}
-      </div>
-      {sub.assignedChef?.chefProfile?.rating > 0 && (
-              <div className="ml-auto text-center">
-                <p className="text-xl font-black text-orange-700">⭐ {sub.assignedChef.chefProfile.rating}</p>
-                <p className="text-xs text-orange-500">rating</p>
+          <Card className="mb-6 border-orange-200 bg-orange-50">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <ChefHat className="h-6 w-6 text-orange-600" />
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              <div>
+                <p className="text-xs text-orange-600 font-semibold uppercase tracking-wide">
+                  Your Assigned Chef
+                </p>
+                <p className="text-lg font-black text-orange-800">
+                  {sub.assignedChefName} 👩‍🍳
+                </p>
+                {sub.assignedChef?.chefProfile?.specialty && (
+                  <p className="text-sm text-orange-600">
+                    {sub.assignedChef.chefProfile.specialty}
+                  </p>
+                )}
+              </div>
+              {sub.assignedChef?.chefProfile?.rating > 0 && (
+                <div className="ml-auto text-center">
+                  <p className="text-xl font-black text-orange-700">
+                    ⭐ {sub.assignedChef.chefProfile.rating}
+                  </p>
+                  <p className="text-xs text-orange-500">rating</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card>
             <CardHeader className="pb-3">
@@ -336,10 +447,10 @@ const MySubscription = () => {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               {[
-                { label: "Meal Type",   val: sub.preferences.mealType },
-                { label: "Meal Time",   val: sub.preferences.mealTime },
+                { label: "Meal Type", val: sub.preferences.mealType },
+                { label: "Meal Time", val: sub.preferences.mealTime },
                 { label: "Spice Level", val: sub.preferences.spiceLevel },
-              ].map(row => (
+              ].map((row) => (
                 <div key={row.label} className="flex justify-between">
                   <span className="text-muted-foreground">{row.label}</span>
                   <span className="font-semibold capitalize">{row.val}</span>
@@ -347,8 +458,12 @@ const MySubscription = () => {
               ))}
               {sub.preferences.specialRequests && (
                 <div className="mt-3 pt-3 border-t">
-                  <p className="text-xs text-muted-foreground mb-1">Special Requests</p>
-                  <p className="text-sm italic">"{sub.preferences.specialRequests}"</p>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    Special Requests
+                  </p>
+                  <p className="text-sm italic">
+                    "{sub.preferences.specialRequests}"
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -360,11 +475,17 @@ const MySubscription = () => {
             </CardHeader>
             <CardContent className="text-sm space-y-1">
               <p className="font-semibold">{sub.deliveryAddress.street}</p>
-              <p className="text-muted-foreground">{sub.deliveryAddress.city}</p>
+              <p className="text-muted-foreground">
+                {sub.deliveryAddress.city}
+              </p>
               {sub.deliveryAddress.landmark && (
-                <p className="text-muted-foreground text-xs">Near: {sub.deliveryAddress.landmark}</p>
+                <p className="text-muted-foreground text-xs">
+                  Near: {sub.deliveryAddress.landmark}
+                </p>
               )}
-              <p className="text-muted-foreground">📞 {sub.deliveryAddress.phone}</p>
+              <p className="text-muted-foreground">
+                📞 {sub.deliveryAddress.phone}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -376,7 +497,7 @@ const MySubscription = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {sub.plan.features.map(f => (
+              {sub.plan.features.map((f) => (
                 <div key={f} className="flex items-center gap-2 text-sm">
                   <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
                   {f}
@@ -390,30 +511,56 @@ const MySubscription = () => {
         {(sub.status === "active" || sub.status === "paused") && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">⚙️ Manage Subscription</CardTitle>
+              <CardTitle className="text-base">
+                ⚙️ Manage Subscription
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-3">
               {sub.status === "active" && (
-                <Button variant="outline" className="border-yellow-300 text-yellow-700 hover:bg-yellow-50"
-                  onClick={() => { if (confirm("Pause your subscription?")) pauseMutation.mutate(); }}
-                  disabled={pauseMutation.isPending}>
+                <Button
+                  variant="outline"
+                  className="border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+                  onClick={() => {
+                    if (confirm("Pause your subscription?"))
+                      pauseMutation.mutate();
+                  }}
+                  disabled={pauseMutation.isPending}
+                >
                   <PauseCircle className="h-4 w-4 mr-2" />
-                  {pauseMutation.isPending ? "Pausing..." : "Pause Subscription"}
+                  {pauseMutation.isPending
+                    ? "Pausing..."
+                    : "Pause Subscription"}
                 </Button>
               )}
               {sub.status === "paused" && (
-                <Button className="gradient-primary"
+                <Button
+                  className="gradient-primary"
                   onClick={() => resumeMutation.mutate()}
-                  disabled={resumeMutation.isPending}>
+                  disabled={resumeMutation.isPending}
+                >
                   <PlayCircle className="h-4 w-4 mr-2" />
-                  {resumeMutation.isPending ? "Resuming..." : "Resume Subscription"}
+                  {resumeMutation.isPending
+                    ? "Resuming..."
+                    : "Resume Subscription"}
                 </Button>
               )}
-              <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50"
-                onClick={() => { if (confirm("Are you sure you want to cancel? This cannot be undone.")) cancelMutation.mutate(); }}
-                disabled={cancelMutation.isPending}>
+              <Button
+                variant="outline"
+                className="border-red-300 text-red-600 hover:bg-red-50"
+                onClick={() => {
+                  if (
+                    confirm(
+                      "Are you sure you want to cancel? This cannot be undone.",
+                    )
+                  )
+                    cancelMutation.mutate();
+                }}
+                disabled={cancelMutation.isPending}
+              >
                 <XCircle className="h-4 w-4 mr-2" />
-                {cancelMutation.isPending ? "Cancelling..." : "Cancel Subscription"}
+                {cancelMutation.isPending
+                  ? "Cancelling..."
+                  : "Cancel Subscription"}
               </Button>
             </CardContent>
           </Card>
@@ -422,7 +569,11 @@ const MySubscription = () => {
         {/* Renewal CTA */}
         {(sub.status === "cancelled" || sub.status === "expired") && (
           <div className="text-center mt-4">
-            <Button className="gradient-primary" size="lg" onClick={() => navigate("/meal-plans")}>
+            <Button
+              className="gradient-primary"
+              size="lg"
+              onClick={() => navigate("/meal-plans")}
+            >
               🔄 Subscribe Again
             </Button>
           </div>

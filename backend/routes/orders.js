@@ -252,27 +252,20 @@ router.post("/", authenticateToken, validateOrder, async (req, res) => {
         await userCart.save();
       }
 
-<<<<<<< HEAD
-    // Send confirmation email
+    // Send confirmation emails
     try {
       await sendOrderConfirmationEmail(customer.email, savedOrder);
-    } catch (e) { }
-=======
-      // Send confirmation emails
-      try {
-        await sendOrderConfirmationEmail(customer.email, savedOrder);
-        
-        // Notify the Chef as well
-        if (savedOrder.assignedChef) {
-          const chef = await User.findById(savedOrder.assignedChef);
-          if (chef && chef.email) {
-            await sendChefNewOrderEmail(chef.email, savedOrder);
-          }
+      
+      // Notify the Chef as well
+      if (savedOrder.assignedChef) {
+        const chef = await User.findById(savedOrder.assignedChef);
+        if (chef && chef.email) {
+          await sendChefNewOrderEmail(chef.email, savedOrder);
         }
-      } catch (e) {
-        console.error("Email notification failed:", e);
       }
->>>>>>> ad836321844bc46af50f6030a38c15b44fbbf685
+    } catch (e) {
+      console.error("Email notification failed:", e);
+    }
 
     // Populate chef name for response
     await savedOrder.populate("assignedChef", "firstName lastName");
