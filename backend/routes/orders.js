@@ -347,7 +347,7 @@ router.patch(
       if (!validChefStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
-          message: "Chef can only set: preparing or ready",
+          message: "Invalid status. Must be: confirmed, preparing, ready, or cancelled",
         });
       }
 
@@ -363,24 +363,34 @@ router.patch(
           .status(404)
           .json({ success: false, message: "Order not found" });
 
-      // Verify this chef has items in this order
-      const hasItems = order.items.some(
-        (item) => item.chef?.toString() === req.user.id,
-      );
-      if (!hasItems)
+      // Update the chef's items status
+      let updated = false;
+      order.chefItems.forEach((chefItem) => {
+        if (chefItem.chef.toString() === req.user.id) {
+          chefItem.status = status;
+          updated = true;
+        }
+      });
+
+      if (!updated)
         return res
           .status(403)
           .json({ success: false, message: "You have no items in this order" });
 
-      await order.updateStatus(status);
+      // Update overall order status based on all chefs
+      order.updateOverallStatus();
+
+      await order.save();
 
       // Notify customer via in-app notification
       try {
+        const chef = await User.findById(req.user.id).select('firstName lastName');
+        const chefName = chef ? `${chef.firstName} ${chef.lastName}` : 'Chef';
         await Notification.create({
           recipient: order.customer,
-          type: "order_update",
-          title: `Order ${status.toUpperCase()}`,
-          message: `Your order #${order.orderNumber} has been ${status}.`,
+          type: "order_status_update",
+          title: `Order Update from ${chefName}`,
+          message: `${chefName} has updated your order #${order.orderNumber} to ${status}.`,
           link: `/orders`,
         });
       } catch (err) {

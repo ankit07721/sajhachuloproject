@@ -114,13 +114,21 @@ const Home = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {isLoadingPopular
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-96 w-full" />
-                ))
-              : popularDishes?.map((dish) => (
-                  <MenuItemCard key={dish._id} item={dish} />
-                ))}
+            {isLoadingPopular ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-96 w-full" />
+              ))
+            ) : popularDishes && popularDishes.length > 0 ? (
+              popularDishes.map((dish) => (
+                <MenuItemCard key={dish._id} item={dish} />
+              ))
+            ) : (
+              <div className="col-span-full py-12 text-center bg-muted/30 rounded-2xl border-2 border-dashed">
+                <ChefHat className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                <h3 className="text-xl font-bold text-muted-foreground">No Chefs Online Right Now</h3>
+                <p className="text-muted-foreground">Our home cooks are busy preparing for their next service. Check back soon!</p>
+              </div>
+            )}
           </div>
           <div className="text-center mt-12">
             <Button asChild size="lg" variant="outline" className="hover-lift">

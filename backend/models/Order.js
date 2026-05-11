@@ -205,6 +205,31 @@ orderSchema.methods.calculateEstimatedDeliveryTime = function () {
   return this.estimatedDeliveryTime;
 };
 
+// ── Update Overall Status Based on Chef Items ──────────────────────────────
+orderSchema.methods.updateOverallStatus = function () {
+  if (!this.chefItems || this.chefItems.length === 0) return;
+
+  const statuses = this.chefItems.map(item => item.status);
+  const uniqueStatuses = [...new Set(statuses)];
+
+  // If all are 'ready', order is 'ready'
+  if (uniqueStatuses.length === 1 && uniqueStatuses[0] === 'ready') {
+    this.status = 'ready';
+  }
+  // If any is 'preparing', order is 'preparing'
+  else if (statuses.includes('preparing')) {
+    this.status = 'preparing';
+  }
+  // If all are 'pending', order is 'confirmed' (assuming confirmed means chefs notified)
+  else if (uniqueStatuses.length === 1 && uniqueStatuses[0] === 'pending') {
+    this.status = 'confirmed';
+  }
+  // Otherwise, keep as is or set to preparing if mixed
+  else {
+    this.status = 'preparing';
+  }
+};
+
 // ── FSM Status Updater ────────────────────────────────────────────────────────
 const STATUS_MESSAGES = {
   confirmed:        'Order confirmed! Kitchen is getting ready.',

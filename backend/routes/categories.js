@@ -44,9 +44,14 @@ router.get('/', async (req, res) => {
       // Admin items → always show
       if (creator.role === 'admin') return true;
 
-      // Chef items → check distance if customer location available
+      // Chef items → check distance and availability
       if (creator.role === 'chef') {
-        // If customer location not provided → show all chef items
+        // ── AVAILABILITY CHECK ──────────────────────────────────────────
+        // Only show if chef is online
+        const isOnline = creator.chefProfile?.isAvailable !== false;
+        if (!isOnline) return false;
+
+        // If customer location not provided → show all online chef items
         if (!hasCustomerLocation) return true;
 
         // If chef has no kitchen location stored → show item (don't penalize)
